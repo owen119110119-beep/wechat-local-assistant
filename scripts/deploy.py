@@ -32,7 +32,7 @@ def find_binary(kind, explicit=None):
     raise ValueError(f'{kind} missing; install official runtime or supply --{kind}')
 
 def initialize_vault(vault):
-    for path in ['.obsidian', '我的随手转发/普通信息库', '我的随手转发/重点关注', '我的突发奇想/待办事项']:
+    for path in ['.obsidian', '我的随手转发/普通信息库', '我的随手转发/重点关注', '待办事项']:
         target = vault / path
         target.mkdir(parents=True, exist_ok=True)
 
