@@ -1,45 +1,36 @@
 # 微信-codex/workbuddy聊天智能助理
 
-通过微信与电脑 Codex 或 WorkBuddy 自然对话，并把公众号文章、重点知识与待办整理到 Obsidian。
+通过微信与电脑上的 Codex 或 WorkBuddy 自然对话，并把公众号文章、重点知识与待办整理到 Obsidian。
 
-**核心功能：1、普通聊天自由讨论和执行任务。2、发送公众号文章链接到聊天窗口，整理文章要点，用户可在聊天语音描述重点备注及需要补充查询的信息，机器人助理整理完成后按用户要求进行分类，存储到电脑知识库。** 
+核心功能：自由讨论和执行任务；发送公众号链接后整理要点，通过文字或语音补充需求，完成分析与查询，再按你的分类意见保存到知识库。
 
 ## 下载安装
 
-[直接下载 Skill 1.0.0 安装包](https://github.com/owen119110119-beep/wechat-local-assistant/releases/download/v1.0.0/wechat-local-assistant-1.0.0.zip) · [版本页](https://github.com/owen119110119-beep/wechat-local-assistant/releases/tag/v1.0.0) · [SHA256 校验和](https://github.com/owen119110119-beep/wechat-local-assistant/releases/download/v1.0.0/SHA256SUMS.txt)
+[下载 Skill 安装包](https://github.com/owen119110119-beep/wechat-local-assistant/releases/latest/download/wechat-local-assistant.zip) · [版本页](https://github.com/owen119110119-beep/wechat-local-assistant/releases/latest)
 
-仓库内也保留[安装包备份](dist/wechat-local-assistant-1.0.0.zip)。
+- **Codex**：将安装包解压到用户的 `.codex/skills/wechat-local-assistant`，在对话中调用 `$wechat-local-assistant`，让助理安装微信接口并配置知识库。Codex 部署适用于 Windows。
+- **WorkBuddy**：在“技能 → 添加技能 → 上传技能”导入安装包，在微信助理会话中启用此 Skill，使用 WorkBuddy 原生微信连接。
+- **Obsidian**：告诉助理你的知识库路径；已有安装和笔记会保留，未安装时由助理协助安装。
 
-安装包根目录直接包含 SKILL.md。请下载上述包导入 WorkBuddy；
-
-- **Codex**：把 Skill 文件夹放入用户的 `.codex/skills/wechat-local-assistant`，在对话里调用 `$wechat-local-assistant`，由助理按 [部署说明](references/codex-install.md) 检测本机、配置专用目录及知识库、安装项目依赖、扫码接入。已经运行的助理不需重复部署或扫码。
-- **WorkBuddy**：在“技能 → 添加技能 → 上传技能”导入安装包，然后在助理会话中启用此 Skill，并告知知识库路径。采用 WorkBuddy 官方原生微信连接及其自身工具，详见 [WorkBuddy 安装](references/workbuddy.md)。导入 Skill 不等于微信已经绑定或服务已经启动。
-- **Obsidian**：先检测已有安装与知识库，保留用户笔记和插件；确实未安装才安装。详见 [Obsidian 安装及分类](references/obsidian.md)。
-
-Codex 网关部署脚本面向 Windows。本项目要求 Node.js >=22.13、Python >=3.10、PowerShell 7，并使用已登录的本机 Codex。WorkBuddy 使用自身模型和运行环境，能力与 Codex 不会自动完全相同。
+首次安装需登录宿主并用手机扫码连接微信，已经运行的助理不用重复绑定。
 
 ## 文章与日常交流
 
-1. 收到公众号链接：读完整正文，反馈简洁核心要点，主动追问重点备注或补充需求。
-2. 收到用户需求：实际分析、调研或完成相应任务，再整理要点；分类建议独立反馈，询问如何分类及是否列入待办。
+1. 发送公众号链接：读取正文，反馈简洁要点，询问希望重点备注或补充什么。
+2. 补充需求：完成分析、查询或其他任务，再反馈要点；单独给出分类建议，询问如何分类及是否记入待办。
 
-任一环节都可继续提出溯源、对比、改写、文件操作或其他问题，不会因为尚未选分类而阻塞。文字与已转写语音等效。
+你可以随时继续讨论或提出其他任务，不需要固定格式。文字和已转写语音同等处理；明确分类或待办意见后直接保存，无需再次确认。纯聊天不自动入库。
 
-纯聊天不自动保存。一篇文章只入普通或重点之一，另建相关待办可以独立执行。待办中的研究应写已查得的具体结果，而不是把调研责任转交用户。
-
-预置的内容结构，可以根据自己的习惯进行修改。
-|类型|保存结构|
+|类型|分类方式|
 |---|---|
-|普通信息|我的随手转发/普通信息库/类别/YYYY-MM-DD/标题-YYYYMMDD.md|
-|重点关注|我的随手转发/重点关注/用途/标题-YYYYMMDD.md|
-|主题待办|我的突发奇想/待办事项/标题-YYYYMMDD.md|
+|普通信息|我的随手转发 → 普通信息库 → 信息类别 → 日期|
+|重点关注|我的随手转发 → 重点关注 → 用途|
+|主题待办|我的突发奇想 → 待办事项|
 
-类别随内容和用途动态建议。重点按用途分类，日期仅判断时效；普通按类别后再日期留档。修改已有主题保留手写内容、先备份、避免重复并读回核验。
+一篇文章只入普通或重点之一，相关待办可单独建立。类别随内容和用途建议；重点关注的日期只用于判断时效。
 
-完整规则唯一来源：[最终交互规则](references/interaction.md)。
+## 运行条件
 
-## 微信入口与运行条件
+电脑须开机联网。Codex 后台网关或 WorkBuddy 须运行；Codex 可视窗口无需一直打开。Codex 可配置登录 Windows 后隐藏自启。
 
-电脑必须开机联网，且codex保持运行。Codex 可以配置用户登录后隐藏自启，不是未登录即运行的系统服务。
-
-【注意】微信只允许一个AI助理通道，如果你已配置助理通道，则再次绑定该助理，会替换你的原有助理。同理，在开通本助理后，如果再绑定其他助理，本助理会被替换。
+**注意：同一微信的 ClawBot 入口重新绑定其他助理，会替换原来的助理连接。**

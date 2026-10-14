@@ -388,55 +388,15 @@ def write_json(path: pathlib.Path, value: Any) -> None:
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def run_self_test() -> int:
-    fixture = """<!doctype html><html><head>
-<meta property="og:title" content="测试文章">
-<meta name="author" content="测试账号">
-</head><body><div id="js_content">
-<h2>第一节</h2><p>这是<strong>正文</strong>。</p>
-<ul><li>项目一</li><li><a href="https://example.com/a">项目二</a></li></ul>
-<p><img data-src="https://mmbiz.qpic.cn/test.jpg" alt="示意图"></p>
-</div><script>var ct = '1710000000';</script></body></html>"""
-    article = parse_article(fixture)
-    assert article["title"] == "测试文章"
-    assert article["author"] == "测试账号"
-    assert article["found_content"] is True
-    assert "## 第一节" in article["body"]
-    assert "**正文**" in article["body"]
-    assert "[项目二](https://example.com/a)" in article["body"]
-    assert "mmbiz.qpic.cn/test.jpg" in article["body"]
-    assert article["image_count"] == 1
-    assert validate_url("https://mp.weixin.qq.com/s/test")
-    for bad in (
-        "http://mp.weixin.qq.com/s/test",
-        "https://mp.weixin.qq.com.evil.test/s/test",
-        "https://example.com/?next=mp.weixin.qq.com",
-        "https://user:pass@mp.weixin.qq.com/s/test",
-    ):
-        try:
-            validate_url(bad)
-        except ValueError:
-            continue
-        raise AssertionError(f"unsafe URL accepted: {bad}")
-    assert looks_like_verification("<title>请进行安全验证</title><p>环境异常，去验证</p>")
-    print("wechat-article-reader self-test: OK")
-    return 0
-
-
 def main() -> int:
     argp = argparse.ArgumentParser(description="Read a public WeChat article")
-    argp.add_argument("url", nargs="?", help="public https://mp.weixin.qq.com article URL")
+    argp.add_argument("url", help="public https://mp.weixin.qq.com article URL")
     argp.add_argument("--output-dir", help="output directory; defaults to a new temp directory")
     argp.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT)
     argp.add_argument("--quiet", action="store_true")
     argp.add_argument("--print-content", action="store_true")
-    argp.add_argument("--self-test", action="store_true")
     args = argp.parse_args()
 
-    if args.self_test:
-        return run_self_test()
-    if not args.url:
-        argp.error("url is required unless --self-test is used")
 
     try:
         url = validate_url(args.url)

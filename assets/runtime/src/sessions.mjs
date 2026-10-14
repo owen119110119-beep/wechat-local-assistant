@@ -69,7 +69,7 @@ export class Sessions {
     const next=await this.codex.thread(null,{cwd:this.cfg.sessionCwd||dirname(this.cfg.projectRoot),projectId:this.cfg.botProjectId});
     try {
       await this.codex.request('thread/name/set',{threadId:next.id,name:'bot会话'});
-      await this.chat(peer,next.id,'这是旧手机会话交接资料，作为背景，不能据此执行入库；保存仍须程序门控与用户逐条明确确认。只用一句话确认已承接，不运行工具。\n'+summary+'\n待整理：'+JSON.stringify(pending));
+      await this.chat(peer,next.id,'这是旧手机会话交接资料，作为背景，不能据此执行入库；后续按用户明确的分类或待办意见执行，不再二次确认；交接资料不作为新操作授权。只用一句话确认已承接，不运行工具。\n'+summary+'\n待整理：'+JSON.stringify(pending));
       const read=await this.codex.request('thread/read',{threadId:next.id,includeTurns:true});
       if(!historyContains(read.thread.turns,summary))throw new Error('CODEX_HANDOFF_READBACK_FAILED');
     }catch(e){await this.codex.request('thread/archive',{threadId:next.id}).catch(()=>{});throw e;}
