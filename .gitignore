@@ -1,0 +1,9 @@
+.runtime/
+.venv/
+node_modules/
+__pycache__/
+*.pyc
+config/local.json
+.env
+*.sqlite*
+*.log

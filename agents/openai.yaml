@@ -1,0 +1,4 @@
+interface:
+  display_name: "微信本机智能助理"
+  short_description: "部署微信与本机智能助理，按最终交互规则整理文章并写入 Obsidian"
+  default_prompt: "使用 $wechat-local-assistant 安装或检查我的微信智能助理，保留自由对话和文章两步整理。"

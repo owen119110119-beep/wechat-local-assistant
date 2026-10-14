@@ -1,0 +1,10 @@
+import {readFileSync} from 'node:fs';
+import {resolve,join} from 'node:path';
+import {spawnSync} from 'node:child_process';
+const idx=process.argv.indexOf('--root');
+if(idx<0||!process.argv[idx+1])throw Error('Pass --root deployment-directory');
+const root=resolve(process.argv[idx+1]);
+const cfg=JSON.parse(readFileSync(join(root,'config/local.json'),'utf8'));
+const result=spawnSync(cfg.pythonPath,[join(root,'scripts/install-dependencies.py')],{cwd:root,windowsHide:true,stdio:'inherit'});
+if(result.error)throw result.error;
+process.exitCode=result.status??1;
