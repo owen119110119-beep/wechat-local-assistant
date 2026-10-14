@@ -6,7 +6,9 @@
 
 ## 下载安装
 
-[下载 Skill 1.0.0 安装包](dist/wechat-local-assistant-1.0.0.zip) · [SHA256 校验和](dist/SHA256SUMS.txt)
+[直接下载 Skill 1.0.0 安装包](https://github.com/owen119110119-beep/wechat-local-assistant/releases/download/v1.0.0/wechat-local-assistant-1.0.0.zip) · [版本页](https://github.com/owen119110119-beep/wechat-local-assistant/releases/tag/v1.0.0) · [SHA256 校验和](https://github.com/owen119110119-beep/wechat-local-assistant/releases/download/v1.0.0/SHA256SUMS.txt)
+
+仓库内也保留[安装包备份](dist/wechat-local-assistant-1.0.0.zip)。
 
 安装包根目录直接包含 SKILL.md。请下载上述包导入 WorkBuddy；GitHub 自带“Download ZIP”包含整个仓库及外层目录，不能视作同一个导入包。
 
