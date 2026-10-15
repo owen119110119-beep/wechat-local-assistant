@@ -10,22 +10,31 @@ import subprocess
 import sys
 
 SKILL = Path(__file__).resolve().parents[1]
+WINDOWS_CODEX_COMPONENTS = ['codex-code-mode-host.exe', 'codex-command-runner.exe', 'codex-windows-sandbox-setup.exe']
+
+def codex_runtime_complete(path):
+    return path.is_file() and (os.name != 'nt' or all((path.parent / name).is_file() for name in WINDOWS_CODEX_COMPONENTS))
 
 def find_binary(kind, explicit=None):
     if explicit:
         p = Path(explicit).expanduser().resolve()
         if not p.is_file():
             raise ValueError(f'{kind} executable missing')
+        if kind == 'codex' and not codex_runtime_complete(p):
+            raise ValueError('Codex execution components missing; select a complete official installation')
         return str(p)
     local = Path(os.environ.get('LOCALAPPDATA', Path.home() / 'AppData/Local'))
     cache = Path.home() / '.cache/codex-runtimes/codex-primary-runtime/dependencies'
+    codex_roots={local / 'OpenAI/Codex/bin',Path.home() / 'AppData/Local/OpenAI/Codex/bin'}
     fixed = {'node': [cache / 'node/bin/node.exe'], 'python': [cache / 'python/python.exe'],
-             'codex': sorted((local / 'OpenAI/Codex/bin').glob('*/codex.exe'), key=lambda p:p.stat().st_mtime, reverse=True)}
+             'codex': sorted({p for base in codex_roots for p in base.glob('*/codex.exe')}, key=lambda p:p.stat().st_mtime, reverse=True)}
     for p in fixed.get(kind, []):
-        if p.is_file():
+        if p.is_file() and (kind != 'codex' or codex_runtime_complete(p)):
             return str(p.resolve())
     found = shutil.which(kind)
     if found:
+        if kind == 'codex' and not codex_runtime_complete(Path(found)):
+            raise ValueError('Codex execution components missing; repair the official installation')
         return str(Path(found).resolve())
     if kind == 'python':
         return sys.executable

@@ -1,18 +1,15 @@
 $ErrorActionPreference = 'Stop'
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $config = Get-Content -LiteralPath (Join-Path $projectRoot 'config\local.json') -Raw | ConvertFrom-Json
-if (-not (Test-Path -LiteralPath $config.codexPath -PathType Leaf)) {
-    $codexBin = Join-Path $env:LOCALAPPDATA 'OpenAI\Codex\bin'
-    $candidate = Get-ChildItem -LiteralPath $codexBin -Directory -ErrorAction Stop |
-        Sort-Object LastWriteTime -Descending |
-        ForEach-Object { Join-Path $_.FullName 'codex.exe' } |
-        Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
-        Select-Object -First 1
-    if (-not $candidate) { throw 'Codex executable was not found in its installation directory.' }
-    $version = & $candidate --version
-    if ($LASTEXITCODE -ne 0 -or $version -notmatch '^codex-cli ') { throw 'Codex executable verification failed.' }
+if ($config.agentMode -eq $true) {
+    $selection = & $config.nodePath (Join-Path $projectRoot 'src\runtime.mjs') $config.codexPath
+    if ($LASTEXITCODE -ne 0) { throw 'Codex runtime components are incomplete; repair the official installation.' }
+    $candidate = ($selection | ConvertFrom-Json).codexPath
+    if (-not $candidate) { throw 'Codex runtime selection failed.' }
+    if ($candidate -ne $config.codexPath) {
     $config.codexPath = $candidate
     $config | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath (Join-Path $projectRoot 'config\local.json') -Encoding utf8
+    }
 }
 $runtime = Join-Path $projectRoot '.runtime'
 New-Item -ItemType Directory -Path $runtime -Force | Out-Null

@@ -2,6 +2,8 @@ import { spawn, execFile } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { isAbsolute } from 'node:path';
+import {resolveRuntime,verifyRuntime} from './runtime.mjs';
 
 // Enforce length/count limits after parsing. Native constrained decoding with
 // these keywords produced truncated multilingual web-search answers in probes.
@@ -24,6 +26,11 @@ export class Codex {
     this.events={};this.lastError=null;this.mcp={};
   }
   async start() {
+    if(this.agent&&isAbsolute(this.binary)){
+      const selected=resolveRuntime(this.binary);
+      if(selected!==this.binary)verifyRuntime(selected);
+      this.binary=selected;
+    }
     const args=['app-server','--listen','stdio://','-c','web_search="live"','-c','sandbox_mode="workspace-write"','-c','sandbox_workspace_write.network_access=true','-c','sandbox_workspace_write.writable_roots='+JSON.stringify(this.writableRoots),'-c','approval_policy="on-request"','-c','approvals_reviewer="auto_review"','--enable','respect_system_proxy','--disable','multi_agent'];
     this.proc=spawn(this.binary,args,
       {cwd:this.workspace,env:independentEnvironment(),windowsHide:true,stdio:['pipe','pipe','pipe']});
@@ -101,6 +108,13 @@ export class Codex {
     for(const a of this.active.values()) a.reject(new Error(code));
   }
   async thread(threadId,options={}) {
+    if(this.agent&&isAbsolute(this.binary)){
+      const selected=resolveRuntime(this.binary);
+      if(selected!==this.binary){
+        if(this.active.size)throw new Error('CODEX_RUNTIME_UPDATE_BUSY');
+        verifyRuntime(selected);await this.stop();this.binary=selected;await this.start();
+      }
+    }
     const params={cwd:options.cwd||this.workspace,environments:[{environmentId:'local',cwd:options.cwd||this.workspace,runtimeWorkspaceRoots:this.writableRoots}],approvalPolicy:'on-request',approvalsReviewer:'auto_review',sandbox:'workspace-write',developerInstructions:readFileSync(join(this.workspace,'AGENTS.md'),'utf8'),config:{project_doc_max_bytes:0,web_search:'live',sandbox_workspace_write:{writable_roots:this.writableRoots,network_access:true}}};
     const result=await this.request(options.fork?'thread/fork':threadId?'thread/resume':'thread/start',{...params,...(threadId?{threadId,...(options.fork?{ephemeral:true,excludeTurns:true}:{})}:{...(options.projectId?{projectId:options.projectId}:{}),...(options.ephemeral?{ephemeral:true}:{})})});
     return {id:result.thread.id,model:result.model};

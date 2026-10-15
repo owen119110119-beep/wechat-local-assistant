@@ -6,6 +6,7 @@ import {splitReply} from './ilink.mjs';
 export function conversationalBubbles(reply){return String(reply).split(/\n{2,}(?=(?:分类建议|建议分类)[：:])/u).filter(Boolean);}
 export function agentFailure(error){
  const detail=String(error.rpcDetail||error.message||'');
+ if(/CODEX_RUNTIME_/u.test(detail))return '本机 Codex 更新后的执行组件不完整，暂时无法操作文件；已保留需求。需要恢复完整安装后继续，不用重新确认分类。';
  if(/interrupted|CANCELLED/iu.test(detail))return '本次任务已停止，已有资料保留。';
  if(/TIMEOUT|timed? ?out/iu.test(detail))return '本次执行超时，尚未完成的步骤已停止，已有对话和资料保留。可以让我继续，或缩小本次处理范围。';
  if(/quota|rate.limit|usage.limit|exhausted/iu.test(detail))return 'Codex 当前使用额度或请求频率受限，这次工作没有完成；需要等额度恢复后继续。';

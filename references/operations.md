@@ -1,6 +1,6 @@
 # 运行与排障
 
-电脑开机联网。Codex 后台网关或 WorkBuddy 需运行。每个微信绑定只启动一个接收服务。
+电脑开机联网。Codex 后台网关或 WorkBuddy 需运行。每个微信绑定只启动一个接收服务。启动会检查 Codex 执行组件是否完整，更新后自动选择完整安装。
 
 Codex 排障先读 `.runtime/status.json`、`gateway.log` 和相关进程，定位微信连接、网络、Codex 登录与额度、会话占用或知识库权限等具体原因。使用部署目录的 `scripts/start.ps1` 启动、`scripts/stop.ps1` 停止；`scripts/autostart-task.ps1 -Mode Enable` 启用登录后自启，`-Mode Disable` 关闭。
 
