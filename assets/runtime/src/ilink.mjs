@@ -58,8 +58,9 @@ export function normalizeMessages(msgs, allowed, acceptSince = 0) {
     if (!m.context_token) continue;
     const voices=(m.item_list??[]).filter(i=>i.type===3);
     const media=voices.filter(i=>!i.voice_item?.text).map(i=>i.voice_item||{});
+    for(const i of m.item_list??[]){const kind={2:'image',4:'file',5:'video'}[i.type];if(kind&&i[kind+'_item'])media.push({kind,item:i[kind+'_item']});}
     const text = (m.item_list ?? []).map(i=>i.type===1 ? i.text_item?.text : i.type===3 ? i.voice_item?.text : '').filter(Boolean).join('\n').trim()
-      || (media.length?'':'【未支持的附件】');
+      || (media.some(x=>!x.kind)?'':media.some(x=>x.kind)?'请读取我发送的附件。':'【未支持的附件】');
     const id = m.message_id ?? m.client_id ?? m.seq;
     const fallback = createHash('sha256').update(JSON.stringify(m)).digest('hex');
     result.push({id:`${peer}:${id ?? fallback}`,peer,context:m.context_token,text,media,voice:voices.length>0});

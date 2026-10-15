@@ -58,12 +58,12 @@ def deploy(args):
     cfg = {'host':args.host, 'vaultPath':str(vault)}
     if args.host == 'codex':
         cfg.update(nodePath=find_binary('node', args.node), pythonPath=find_binary('python', args.python), codexPath=find_binary('codex', args.codex))
-        version = subprocess.run([cfg['nodePath'],'-p',"process.versions.node"], capture_output=True, text=True, check=True).stdout.strip()
+        version = subprocess.run([cfg['nodePath'],'-p',"process.versions.node"], capture_output=True, text=True, encoding='utf-8', check=True).stdout.strip()
         parts = [int(n) for n in version.split('.')[:2]]
         if parts < [22,13]:
             raise ValueError('Node >=22.13 required for node:sqlite')
         subprocess.run([cfg['nodePath'],'--input-type=module','-e',"import {DatabaseSync} from 'node:sqlite'; const d=new DatabaseSync(':memory:');d.close()"],capture_output=True,check=True)
-        check = subprocess.run([cfg['codexPath'],'--version'],capture_output=True,text=True,check=True).stdout.strip()
+        check = subprocess.run([cfg['codexPath'],'--version'],capture_output=True,text=True,encoding='utf-8',check=True).stdout.strip()
         if not check.startswith('codex-cli '):
             raise ValueError('Unexpected Codex executable')
         cfg.update(agentMode=True, agentTimeoutMs=600000, turnTimeoutMs=180000, pollTimeoutMs=40000,
@@ -79,11 +79,17 @@ def deploy(args):
     initialize_vault(vault)
     if args.host == 'codex':
         shutil.copytree(SKILL / 'assets/runtime',target,dirs_exist_ok=True)
+    else:
+        shared=['article_media.py','content_reader.py','browser_provider.py','isaac64.py','THIRD_PARTY_NOTICES.md','requirements-content.txt','requirements-media.txt','requirements-voice.lock.txt','setup-content.py','transcribe.py']
+        (target/'scripts').mkdir(exist_ok=True)
+        for name in shared:shutil.copy2(SKILL/'assets/runtime/scripts'/name,target/'scripts'/name)
+        shutil.copy2(SKILL/'scripts/read_wechat_article.py',target/'scripts/read_wechat_article.py')
     (target / 'config').mkdir(exist_ok=True)
     (target / 'workspace').mkdir(exist_ok=True)
     (target / '.runtime').mkdir(exist_ok=True)
     policy = (SKILL / 'references/interaction.md').read_text(encoding='utf-8')
     policy += '\n\n当前知识库绝对路径：' + str(vault) + '\n'
+    policy += '\n素材读取：使用部署目录scripts/content_reader.py，读取输出的content.md、content.json及本机图片/视频证据。依赖由scripts/setup-content.py安装到部署目录.venv。\n'
     (target / 'AGENTS.md').write_text(policy,encoding='utf-8')
     (target / 'workspace/AGENTS.md').write_text(policy,encoding='utf-8')
     name = 'local.json' if args.host == 'codex' else 'profile.json'

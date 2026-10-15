@@ -1,0 +1,9 @@
+-r requirements-media.txt
+playwright==1.64.0
+pypdf==6.20.1
+pypdfium2==5.14.0
+python-docx==1.2.0
+python-pptx==1.0.2
+openpyxl==3.1.5
+trafilatura==2.3.1
+chompjs==1.4.1

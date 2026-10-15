@@ -4,6 +4,8 @@
 
 核心功能：自由讨论和执行任务；发送公众号链接后整理要点，通过文字或语音补充需求，完成分析与查询，再按你的分类意见保存到知识库。
 
+也可整理小红书图文、网页，以及图片、PDF、DOCX、PPTX、XLSX和音视频文件；配图文字、扫描页和视频画面在本机读取。
+
 ## 下载安装
 
 [下载 Skill 安装包](https://github.com/owen119110119-beep/wechat-local-assistant/releases/latest/download/wechat-local-assistant.zip) · [版本页](https://github.com/owen119110119-beep/wechat-local-assistant/releases/latest)

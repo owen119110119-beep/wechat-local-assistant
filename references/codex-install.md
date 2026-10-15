@@ -13,6 +13,8 @@ node scripts/install-dependencies.mjs --root "D:\微信智能助理"
 
 安装目标使用新的专用空目录，知识库可复用已有目录。脚本保留原有笔记与配置，权限仅覆盖助理目录和知识库。依赖安装使用部署配置中检测到的运行时；公众号读取器无需额外依赖。已有语音转写直接使用。
 
+随后进入部署目录执行 `python scripts/setup-content.py --with-media`，配置小红书、PDF、Office、图片和音视频读取；具体使用见[素材读取](content-reading.md)。
+
 进入部署目录，使用 `config/local.json` 中的 nodePath 运行 `scripts/pair-weixin.mjs`，打开生成的本机二维码页面，由用户手机扫码。凭据仅保存至本机 `.runtime/credentials/`，不复用其他助理凭据；验证码由用户在本机终端输入。已绑定 ClawBot 时先告知重新绑定会替换原入口。
 
 扫码完成后用 PowerShell 7 执行：

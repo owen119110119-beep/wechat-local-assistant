@@ -14,3 +14,5 @@ python scripts/deploy.py --host workbuddy --target "D:\微信WorkBuddy助理" --
 5. 手机发送普通消息确认连接，再发送公众号链接开始整理。电脑与 WorkBuddy 保持运行。
 
 公众号正文由 Skill 的 `scripts/read_wechat_article.py URL --output-dir 本机临时目录 --quiet` 读取，随后读生成的正文和元数据。检索、讨论和文件操作使用 WorkBuddy 自身工具。总结与分类建议分别表达；文字和已转写语音同等处理。依据实际读取、检索和保存结果回复。
+
+小红书和文件读取在部署目录执行 `python scripts/setup-content.py --with-media`，然后按[素材读取](content-reading.md)调用共享读取脚本，不安装Codex网关。

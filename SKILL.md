@@ -1,6 +1,6 @@
 ---
 name: wechat-local-assistant
-description: 部署或维护微信本机智能助理，连接 Codex 或 WorkBuddy、配置 Obsidian，支持自然对话、公众号整理、知识分类和待办保存。
+description: 部署或维护微信本机智能助理，连接 Codex 或 WorkBuddy、配置 Obsidian，读取公众号、小红书和文件，支持自然对话、知识分类和待办保存。
 ---
 
 # 微信本机智能助理
@@ -13,6 +13,7 @@ description: 部署或维护微信本机智能助理，连接 Codex 或 WorkBudd
 - WorkBuddy：按 [安装说明](references/workbuddy.md) 使用原生微信连接及自身工具。
 - 两个宿主均执行 [交互与分类规则](references/interaction.md)，部署脚本使用同一规则文件。
 - Obsidian：按 [知识库配置](references/obsidian.md) 复用已有安装和笔记。
+- 小红书、网页、PDF、Office、图片和音视频：按 [素材读取](references/content-reading.md) 获取正文及本机证据，再按用户需求整理。
 - 排障：按 [运行说明](references/operations.md) 查实际状态并处理具体错误。
 
 首次宿主登录和微信扫码由用户完成。凭据仅留本机，不输出到聊天或日志；收到手机回复、实际写入并读回文件后，才报告对应操作成功。

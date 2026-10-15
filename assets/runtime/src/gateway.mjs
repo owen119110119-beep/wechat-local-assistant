@@ -7,6 +7,7 @@ import { Ilink,loadCredentials,normalizeMessages,splitReply } from './ilink.mjs'
 import { acquireLock } from './lock.mjs';
 import { ArticleReader } from './article.mjs';
 import { Voice } from './voice.mjs';
+import { Attachments,ContentReader } from './attachments.mjs';
 import { Vault } from './vault.mjs';
 import { Knowledge } from './knowledge.mjs';
 import { Sessions } from './sessions.mjs';
@@ -48,6 +49,7 @@ export class Gateway {
       if(cmd==='help') this.store.complete(row.id,row.peer,[HELP]);
       if(cmd==='status') this.store.complete(row.id,row.peer,[`本机网关运行中。\nCodex：${this.codex.ready?'已连接':'未连接'}\n当前：${this.busy?'正在生成':'空闲'}\n发送“新对话”可开始新的聊天。`]);
       if(cmd==='cancel') {
+        this.knowledge?.liveAgent?.cancelInput(row.peer);
         this.knowledge?.cancel(row.peer);
         const peer=this.store.peer(row.peer);
         const result=peer?.thread ? await this.codex.cancel(peer.thread) : false;
@@ -55,7 +57,7 @@ export class Gateway {
         for(const other of waiting) if(!command(other.text)) this.store.state(other.id,'cancelled');
         this.store.complete(row.id,row.peer,[result?'正在停止本次生成，全部待整理记录已取消。':'当前没有正在生成的回复，等待中的问题和待整理记录已取消。']);
       }
-      if(row.text==='【未支持的附件】') this.store.complete(row.id,row.peer,['请发送文字、语音或粘贴公众号链接。文章卡片及图片暂不能作为正文读取。']);
+      if(row.text==='【未支持的附件】') this.store.complete(row.id,row.peer,['这条消息没有包含接口可读取的正文、链接或附件。文字、语音、图片、PDF及其他文件可以直接发送；文章卡片入口仍在接入。']);
       if(this.busy&&this.cfg.agentMode&&!cmd&&row.text!=='【未支持的附件】')await this.knowledge?.steer(row);
     }
     this.report(this.status());
@@ -159,6 +161,7 @@ async function main() {
     if(existsSync(stopFile)) unlinkSync(stopFile);
     stage('weixin_check');await ilink.check();stage('codex_initialize');await codex.start();stage('sessions_restore');
     const knowledge=new Knowledge(store,codex,new ArticleReader(cfg,runtime),new Voice(cfg,runtime),new Vault(cfg.vaultPath,join(runtime,'backups','task-updates')),cfg);
+    knowledge.attachments=new Attachments(cfg,runtime);knowledge.contentReader=new ContentReader(cfg,runtime);
     knowledge.sessions=new Sessions(store,codex,cfg,runtime);
     for(const {id,thread} of store.db.prepare('SELECT id,thread FROM peers').all())if(thread){try{await knowledge.sessions.current(id);}catch(e){log('session_restore_deferred:'+startupReason(e));}}
     knowledge.recover();store.recover();
