@@ -107,7 +107,7 @@ export class Codex {
     this.requests.clear();
     for(const a of this.active.values()) a.reject(new Error(code));
   }
-  async thread(threadId,options={}) {
+  async ensureRuntime() {
     if(this.agent&&isAbsolute(this.binary)){
       const selected=resolveRuntime(this.binary);
       if(selected!==this.binary){
@@ -115,6 +115,9 @@ export class Codex {
         verifyRuntime(selected);await this.stop();this.binary=selected;await this.start();
       }
     }
+  }
+  async thread(threadId,options={}) {
+    await this.ensureRuntime();
     const params={cwd:options.cwd||this.workspace,environments:[{environmentId:'local',cwd:options.cwd||this.workspace,runtimeWorkspaceRoots:this.writableRoots}],approvalPolicy:'on-request',approvalsReviewer:'auto_review',sandbox:'workspace-write',developerInstructions:readFileSync(join(this.workspace,'AGENTS.md'),'utf8'),config:{project_doc_max_bytes:0,web_search:'live',sandbox_workspace_write:{writable_roots:this.writableRoots,network_access:true}}};
     const result=await this.request(options.fork?'thread/fork':threadId?'thread/resume':'thread/start',{...params,...(threadId?{threadId,...(options.fork?{ephemeral:true,excludeTurns:true}:{})}:{...(options.projectId?{projectId:options.projectId}:{}),...(options.ephemeral?{ephemeral:true}:{})})});
     return {id:result.thread.id,model:result.model};

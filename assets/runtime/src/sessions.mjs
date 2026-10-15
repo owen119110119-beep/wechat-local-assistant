@@ -11,6 +11,7 @@ export function historyContains(value,text) {
 export class Sessions {
   constructor(store,codex,cfg,runtime){Object.assign(this,{store,codex,cfg,runtime});this.temporary=new Map();}
   async current(peer,options={}) {
+    await this.codex.ensureRuntime?.();
     const id=this.store.peer(peer)?.thread||null;
     let cached=this.temporary.get(peer),t;
     if(cached&&cached.process!==this.codex.proc){this.temporary.delete(peer);cached=null;}
