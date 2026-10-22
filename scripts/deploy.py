@@ -11,6 +11,24 @@ import sys
 
 SKILL = Path(__file__).resolve().parents[1]
 WINDOWS_CODEX_COMPONENTS = ['codex-code-mode-host.exe', 'codex-command-runner.exe', 'codex-windows-sandbox-setup.exe']
+POLICY_START='<!-- wechat-local-assistant:policy:start -->'
+POLICY_END='<!-- wechat-local-assistant:policy:end -->'
+
+def managed_policy(vault):
+    policy=(SKILL/'references/interaction.md').read_text(encoding='utf-8')
+    policy+='\n\n当前知识库绝对路径：'+str(vault)+'\n'
+    policy+='\n素材读取使用部署目录scripts/content_reader.py，按用户目标读取其正文及本机证据；群读取仅在已配置的Codex入口提供chatHistory时使用给定程序，不自行编造授权。\n'
+    return POLICY_START+'\n'+policy+'\n'+POLICY_END+'\n'
+
+def payload_files(host):
+    runtime=SKILL/'assets/runtime'
+    if host=='codex':
+        result={p.relative_to(runtime).as_posix():p for p in runtime.rglob('*') if p.is_file()}
+        for name in ['pair-weixin.mjs','read_wechat_article.py','install-dependencies.mjs','install-dependencies.py']:
+            result['scripts/'+name]=SKILL/'scripts'/name
+        return result
+    shared=['article_media.py','content_reader.py','browser_provider.py','isaac64.py','THIRD_PARTY_NOTICES.md','requirements-content.txt','requirements-media.txt','requirements-voice.lock.txt','setup-content.py','transcribe.py']
+    return {**{'scripts/'+name:runtime/'scripts'/name for name in shared},'scripts/read_wechat_article.py':SKILL/'scripts/read_wechat_article.py'}
 
 def codex_runtime_complete(path):
     return path.is_file() and (os.name != 'nt' or all((path.parent / name).is_file() for name in WINDOWS_CODEX_COMPONENTS))
@@ -71,34 +89,25 @@ def deploy(args):
                    credentialsSource=str(target / '.runtime/credentials'),
                    articleReaderPath=str(target / 'scripts/read_wechat_article.py'),
                    voicePythonPath=str(target / '.venv/Scripts/python.exe'),
-                   botProjectId=args.project_id or None,
+                   botProjectId=args.project_id or None,chatHistory={'enabled':False},
                    writableRoots=[str(target), str(vault)], sessionCwd=str(target / 'workspace'))
     if args.check_only:
         return {'valid':True,'host':args.host,'writes':False}
     target.mkdir(parents=True,exist_ok=True)
     initialize_vault(vault)
-    if args.host == 'codex':
-        shutil.copytree(SKILL / 'assets/runtime',target,dirs_exist_ok=True)
-    else:
-        shared=['article_media.py','content_reader.py','browser_provider.py','isaac64.py','THIRD_PARTY_NOTICES.md','requirements-content.txt','requirements-media.txt','requirements-voice.lock.txt','setup-content.py','transcribe.py']
-        (target/'scripts').mkdir(exist_ok=True)
-        for name in shared:shutil.copy2(SKILL/'assets/runtime/scripts'/name,target/'scripts'/name)
-        shutil.copy2(SKILL/'scripts/read_wechat_article.py',target/'scripts/read_wechat_article.py')
+    for name,source in payload_files(args.host).items():
+        destination=target/name;destination.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(source,destination)
     (target / 'config').mkdir(exist_ok=True)
     (target / 'workspace').mkdir(exist_ok=True)
     (target / '.runtime').mkdir(exist_ok=True)
-    policy = (SKILL / 'references/interaction.md').read_text(encoding='utf-8')
-    policy += '\n\n当前知识库绝对路径：' + str(vault) + '\n'
-    policy += '\n素材读取：使用部署目录scripts/content_reader.py，读取输出的content.md、content.json及本机图片/视频证据。依赖由scripts/setup-content.py安装到部署目录.venv。\n'
+    policy = managed_policy(vault)
     (target / 'AGENTS.md').write_text(policy,encoding='utf-8')
     (target / 'workspace/AGENTS.md').write_text(policy,encoding='utf-8')
     name = 'local.json' if args.host == 'codex' else 'profile.json'
     (target / 'config' / name).write_text(json.dumps(cfg,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
-    if args.host == 'codex':
-        for name in ['pair-weixin.mjs','read_wechat_article.py','install-dependencies.mjs','install-dependencies.py']:
-            shutil.copy2(SKILL / 'scripts' / name,target / 'scripts' / name)
     manifest = {str(p.relative_to(target)):hashlib.sha256(p.read_bytes()).hexdigest() for p in target.rglob('*') if p.is_file()}
-    (target / '.runtime/deployment.json').write_text(json.dumps({'host':args.host,'files':manifest,'started':False,'paired':False},ensure_ascii=False,indent=2),encoding='utf-8')
+    version=json.loads((SKILL/'assets/runtime/package.json').read_text(encoding='utf-8'))['version']
+    (target / '.runtime/deployment.json').write_text(json.dumps({'version':version,'host':args.host,'files':manifest,'started':False,'paired':False},ensure_ascii=False,indent=2),encoding='utf-8')
     return {'deployed':True,'host':args.host,'target':str(target),'vault':str(vault),'started':False,'paired':False}
 
 if __name__ == '__main__':

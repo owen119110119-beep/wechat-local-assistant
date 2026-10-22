@@ -1,4 +1,4 @@
 interface:
   display_name: "微信本机智能助理"
-  short_description: "连接微信与 Codex 或 WorkBuddy，整理公众号、知识与待办"
-  default_prompt: "使用 $wechat-local-assistant 安装或检查我的微信智能助理，保留自由对话和文章两步整理。"
+  short_description: "连接微信、Codex 或 WorkBuddy 与 Obsidian，整理公众号、指定群消息及待办"
+  default_prompt: "使用 $wechat-local-assistant 安装或升级我的微信助理，保留自然对话与文章两步整理，按需启用指定群整理。"

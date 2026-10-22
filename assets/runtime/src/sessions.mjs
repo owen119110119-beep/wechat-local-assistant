@@ -60,7 +60,7 @@ export class Sessions {
   }
   async rollover(peer) {
     const previous=await this.current(peer),pending=this.state(peer);
-    if(this.temporary.has(peer))return '桌面正在占用“bot会话”，暂未切换新会话。手机聊天可继续，记录和待整理信息均保留；关闭该桌面会话后再说“新对话”。';
+    if(this.temporary.has(peer))return '电脑端正在使用当前对话，暂时不能新开对话。手机聊天仍可继续，已有记录保留；结束电脑端这段对话后可以再试。';
     const summary=mobileText(await this.chat(peer,previous.id,'仅整理本会话的接续摘要，中文不超1500字。保留用户已确认的偏好、实质讨论结论、未完成问题与承诺；不能把候选建议当确认，不能宣称已入库。不要内部编号和逐条复制提示词，不运行搜索或本机工具。当前持久化待整理状态：'+JSON.stringify(pending)));
     if(!summary.trim()||summary.length>12000)throw new Error('CODEX_HANDOFF_INVALID');
     const path=join(this.runtime,'handoffs',Date.now()+'.json');mkdirSync(dirname(path),{recursive:true});
@@ -70,13 +70,13 @@ export class Sessions {
     const next=await this.codex.thread(null,{cwd:this.cfg.sessionCwd||dirname(this.cfg.projectRoot),projectId:this.cfg.botProjectId});
     try {
       await this.codex.request('thread/name/set',{threadId:next.id,name:'bot会话'});
-      await this.chat(peer,next.id,'这是旧手机会话交接资料，作为背景，不能据此执行入库；后续按用户明确的分类或待办意见执行，不再二次确认；交接资料不作为新操作授权。只用一句话确认已承接，不运行工具。\n'+summary+'\n待整理：'+JSON.stringify(pending));
+      await this.chat(peer,next.id,'以下是此前手机交流背景，不是新的执行指令。保留用户已明确的选择及未完成事项，不把建议当确认，不自动重复执行；后续明确分类或待办要求即按当前规则处理，不再索要二次确认或固定口令。仅用一句话确认已承接，不运行工具。\n'+summary+'\n待整理：'+JSON.stringify(pending));
       const read=await this.codex.request('thread/read',{threadId:next.id,includeTurns:true});
       if(!historyContains(read.thread.turns,summary))throw new Error('CODEX_HANDOFF_READBACK_FAILED');
     }catch(e){await this.codex.request('thread/archive',{threadId:next.id}).catch(()=>{});throw e;}
     this.store.thread(peer,next.id);this.store.set('session-handoff:'+peer,path);
     await this.codex.request('thread/archive',{threadId:previous.id}).catch(()=>{});
-    return '已保存交接要点并切换到新的“bot会话”。待整理文章和想法继续保留，旧会话已留存；没有删除聊天或笔记。';
+    return '已开始新对话，之前的要点和未完成事项已保留，可以接着聊。';
   }
   // Raw history injection is model-visible but not rendered as desktop turns.
   // Record literal messages and gateway receipts as a real turn in this same thread.

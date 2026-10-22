@@ -56,7 +56,7 @@ export class Store {
   }
   recover() {
     const rows = this.db.prepare("SELECT * FROM inbox WHERE state='running'").all();
-    for (const row of rows) this.complete(row.id, row.peer, ['上次任务因网关重启中断。请重新发送请求；我没有自动重复执行。']);
+    for (const row of rows) this.complete(row.id, row.peer, ['上次任务因服务重启中断，尚未完成。你可以让我继续；继续前会先核对已有结果，避免重复保存。']);
     return rows.length;
   }
   outgoing() {

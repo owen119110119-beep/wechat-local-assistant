@@ -1,6 +1,8 @@
 # Codex 部署（Windows）
 
-已有助理正常运行时只安装 Skill，不重复部署、绑定或注册自启。
+先检测已有安装。新用户部署到专用空目录；升级使用新版Skill中的`scripts/upgrade.py`，不重复绑定或注册自启。
+
+已有本Skill部署的助理，先等任务结束并停止服务，再执行`python 新版Skill目录/scripts/upgrade.py --target 原安装目录 --check-only`核对，去掉`--check-only`执行升级。脚本备份被替换文件，保留配置、绑定、消息、依赖和知识库；发现自定义代码或旧规则改动则保留并交给助理合并，不能覆盖。升级后用原目录`scripts/start.ps1`启动。
 
 先检测并登录官方 Codex，准备 Node.js >=22.13、Python >=3.10、PowerShell 7。优先使用已有或 Codex 捆绑运行时，缺少时安装官方版本；不覆盖已有环境。Codex 需支持本机 App Server，连接错误按运行说明排查。
 
@@ -25,3 +27,5 @@ pwsh -NoProfile -File scripts/autostart-task.ps1 -Mode Enable
 ```
 
 自启在用户登录 Windows 后隐藏运行。电脑需开机联网，后台网关需运行，Codex 可视窗口无需一直打开。确认状态文件显示已连接，并请用户从手机发送普通消息；保存时核查实际文件。启动失败查具体错误，不反复扫码。
+
+需要整理指定群时，再按[群聊整理](group-chat.md)启用；新安装默认关闭，不扫描聊天记录或预设任何群。

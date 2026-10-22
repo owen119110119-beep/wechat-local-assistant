@@ -11,9 +11,10 @@ import { Attachments,ContentReader } from './attachments.mjs';
 import { Vault } from './vault.mjs';
 import { Knowledge } from './knowledge.mjs';
 import { Sessions } from './sessions.mjs';
-import { mobileText } from './mobile.mjs';
+import { mobileText,userFailure } from './mobile.mjs';
+import {ChatHistory} from './chat-history.mjs';
 
-export const HELP='我是本机 Codex 微信助理。文字或语音自然说需求即可，可以连续讨论、实际联网调研、查看或编辑项目与知识库，不需要固定格式。\n公众号文章按约定：先给要点并追问重点，收到需求后实际整理，再独立建议分类、问如何分类及是否待办。普通/重点只选一类；明确选择就执行，不二次确认。\n我正在处理时也可补充要求；需要时会发进度。保存会实际读回，失败说明具体原因。\n帮助或/help；状态；新对话；停止。电脑需开机联网，后台服务持续运行。';
+export const HELP='我是本机 Codex 微信助理。文字或语音自然说需求即可，可以连续讨论、实际联网调研、查看或编辑项目与知识库，不需要固定格式。\n公众号文章按约定：先给要点并追问重点，收到需求后实际整理，再独立建议分类、问如何分类及是否待办。普通/重点只选一类；明确选择就执行，不二次确认。\n我正在处理时也可补充要求；需要时会发进度。保存完成后会告诉你结果，失败会说明原因。\n帮助或/help；状态；新对话；停止。电脑需开机联网，后台服务持续运行。';
 export function command(text) {
   return ({'/help':'help','帮助':'help','/status':'status','状态':'status','/new':'new','新对话':'new',
     '/cancel':'cancel','停止':'cancel'})[text.trim().replace(/[。.!！]+$/u,'').toLowerCase()] || null;
@@ -47,7 +48,7 @@ export class Gateway {
     for(const row of this.store.pending()) {
       const cmd=command(row.text);
       if(cmd==='help') this.store.complete(row.id,row.peer,[HELP]);
-      if(cmd==='status') this.store.complete(row.id,row.peer,[`本机网关运行中。\nCodex：${this.codex.ready?'已连接':'未连接'}\n当前：${this.busy?'正在生成':'空闲'}\n发送“新对话”可开始新的聊天。`]);
+      if(cmd==='status') this.store.complete(row.id,row.peer,[`助理服务运行中。\nCodex：${this.codex.ready?'已连接':'未连接'}\n当前：${this.busy?'正在处理':'空闲'}`]);
       if(cmd==='cancel') {
         this.knowledge?.liveAgent?.cancelInput(row.peer);
         this.knowledge?.cancel(row.peer);
@@ -57,7 +58,7 @@ export class Gateway {
         for(const other of waiting) if(!command(other.text)) this.store.state(other.id,'cancelled');
         this.store.complete(row.id,row.peer,[result?'正在停止本次生成，全部待整理记录已取消。':'当前没有正在生成的回复，等待中的问题和待整理记录已取消。']);
       }
-      if(row.text==='【未支持的附件】') this.store.complete(row.id,row.peer,['这条消息没有包含接口可读取的正文、链接或附件。文字、语音、图片、PDF及其他文件可以直接发送；文章卡片入口仍在接入。']);
+      if(row.text==='【未支持的附件】') this.store.complete(row.id,row.peer,['这条消息没能读到可用内容。如果发的是文章卡片，请复制文章链接发来；也可以直接发送文字、语音或文件。']);
       if(this.busy&&this.cfg.agentMode&&!cmd&&row.text!=='【未支持的附件】')await this.knowledge?.steer(row);
     }
     this.report(this.status());
@@ -82,9 +83,7 @@ export class Gateway {
     } catch(e) {
       const known=/^CODEX_[A-Z_0-9-]+$/.test(e.message)?e.message:'CODEX_UNEXPECTED_ERROR';
       this.error=known;
-      this.store.complete(row.id,row.peer,[known==='CODEX_TURN_TIMEOUT'
-        ?'本次生成超时，已停止。请缩短问题后重试。'
-        :`本次回复未完成（${known}）。请稍后重试；我没有自动重复执行。`]);
+      this.store.complete(row.id,row.peer,[userFailure(e)]);
     } finally {this.busy=false;this.report(this.status());}
   }
   async deliver() {
@@ -98,6 +97,7 @@ export class Gateway {
         this.store.retry(row.id,attempts,Math.min(60000,2000*2**attempts),attempts>=5||e.code===-14);
       }
     }
+    await this.knowledge?.chatHistory?.flush();
     this.report(this.status());
   }
   async poll() {
@@ -161,6 +161,7 @@ async function main() {
     if(existsSync(stopFile)) unlinkSync(stopFile);
     stage('weixin_check');await ilink.check();stage('codex_initialize');await codex.start();stage('sessions_restore');
     const knowledge=new Knowledge(store,codex,new ArticleReader(cfg,runtime),new Voice(cfg,runtime),new Vault(cfg.vaultPath,join(runtime,'backups','task-updates')),cfg);
+    knowledge.chatHistory=new ChatHistory(cfg,store);
     knowledge.attachments=new Attachments(cfg,runtime);knowledge.contentReader=new ContentReader(cfg,runtime);
     knowledge.sessions=new Sessions(store,codex,cfg,runtime);
     for(const {id,thread} of store.db.prepare('SELECT id,thread FROM peers').all())if(thread){try{await knowledge.sessions.current(id);}catch(e){log('session_restore_deferred:'+startupReason(e));}}

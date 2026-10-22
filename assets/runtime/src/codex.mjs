@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { isAbsolute } from 'node:path';
 import {resolveRuntime,verifyRuntime} from './runtime.mjs';
+import {USER_COMMUNICATION} from './mobile.mjs';
 
 // Enforce length/count limits after parsing. Native constrained decoding with
 // these keywords produced truncated multilingual web-search answers in probes.
@@ -118,7 +119,7 @@ export class Codex {
   }
   async thread(threadId,options={}) {
     await this.ensureRuntime();
-    const params={cwd:options.cwd||this.workspace,environments:[{environmentId:'local',cwd:options.cwd||this.workspace,runtimeWorkspaceRoots:this.writableRoots}],approvalPolicy:'on-request',approvalsReviewer:'auto_review',sandbox:'workspace-write',developerInstructions:readFileSync(join(this.workspace,'AGENTS.md'),'utf8'),config:{project_doc_max_bytes:0,web_search:'live',sandbox_workspace_write:{writable_roots:this.writableRoots,network_access:true}}};
+    const params={cwd:options.cwd||this.workspace,environments:[{environmentId:'local',cwd:options.cwd||this.workspace,runtimeWorkspaceRoots:this.writableRoots}],approvalPolicy:'on-request',approvalsReviewer:'auto_review',sandbox:'workspace-write',developerInstructions:readFileSync(join(this.workspace,'AGENTS.md'),'utf8')+'\n\n'+USER_COMMUNICATION,config:{project_doc_max_bytes:0,web_search:'live',sandbox_workspace_write:{writable_roots:this.writableRoots,network_access:true}}};
     const result=await this.request(options.fork?'thread/fork':threadId?'thread/resume':'thread/start',{...params,...(threadId?{threadId,...(options.fork?{ephemeral:true,excludeTurns:true}:{})}:{...(options.projectId?{projectId:options.projectId}:{}),...(options.ephemeral?{ephemeral:true}:{})})});
     return {id:result.thread.id,model:result.model};
   }
