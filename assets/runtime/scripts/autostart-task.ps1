@@ -34,6 +34,7 @@ if ($Mode -eq 'Enable') {
     $sourcePath = Join-Path $PSScriptRoot 'autostart-launch.cs'
     if (-not (Test-Path -LiteralPath $compilerPath)) { throw 'Local GUI launcher compiler not found.' }
     New-Item -ItemType Directory -Path (Join-Path $projectRoot '.runtime') -Force | Out-Null
+    New-Item -ItemType Directory -Path (Join-Path $projectRoot '.runtime') -Force | Out-Null
     & $compilerPath /nologo /target:winexe (('/out:' + $guiLauncherPath)) $sourcePath
     if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $guiLauncherPath)) { throw 'GUI launcher compilation failed.' }
     $action = New-ScheduledTaskAction -Execute $guiLauncherPath -Argument ('"' + $shellPath + '"') -WorkingDirectory $projectRoot
@@ -43,7 +44,7 @@ if ($Mode -eq 'Enable') {
     # Task Scheduler can keep the task running while the detached gateway lives.
     # A finite limit would kill that healthy child process after logon.
     $settings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -StartWhenAvailable -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero) -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
-    Register-ScheduledTask -TaskName $taskName -TaskPath '\' -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description '当前用户登录后隐藏启动本机微信Codex助理，延迟20秒，复用单实例检查；不保存密码。' -Force | Out-Null
+    Register-ScheduledTask -TaskName $taskName -TaskPath '\' -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description '旧登录启动入口，当前改为Codex启动后接入。' -Force | Out-Null
 }
 $task = Get-ScheduledTask -TaskName $taskName -TaskPath '\' -ErrorAction SilentlyContinue
 if (-not $task) { Write-Host '微信助理登录自启尚未配置。'; exit 0 }

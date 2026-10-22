@@ -33,8 +33,8 @@ export class LiveAgent {
    const recent=this.store.db.prepare('SELECT text,voice FROM inbox WHERE peer=? ORDER BY created DESC,rowid DESC LIMIT 12').all(peer).reverse();
    let notes=[];try{notes=this.k.vault.catalog();}catch{/* Catalog is a hint; native tools can inspect the actual vault. */}
    let groupTypes=[];try{groupTypes=this.k.vault.groupCategories?.()||[];}catch{/* Invalid optional categories must not block ordinary chat. */}
-   const describe=c=>({title:captureTitle(c),url:c.url,body:c.article?.body||'',cache:c.article?.cache||null,media:c.article?.media||null,initialPoints:c.analysis?.points||[],userRequirements:[c.requirements,c.focus].filter(Boolean).join('\n'),lastAssistantReply:c.agentReply||'',oldFailure:c.error||null,articleInteraction:c.focusAskedAt?'已经反馈首轮要点并追问过重点。若本次仍讨论这篇文章，需要完成需求分析后的总结、独立分类建议、询问分类及是否待办；普通无关对话不套此流程。':'本次文章先整理要点并追问重点或补充。'});
-   return {date:localDate(Date.now()),vaultPath:this.k.cfg.vaultPath,recentUserMessages:recent.map(r=>r.text),notes,currentResource:resource?{kind:resource.kind,title:resource.title||resource.source?.title||resource.article?.title,url:resource.url,files:resource.files,source:resource.source}:null,resources:records.filter(c=>['attachment','source'].includes(c.kind)).slice(-8).map(c=>({kind:c.kind,url:c.url,files:c.files||[],source:c.source||null})),currentArticle:current?describe(current):null,otherPendingArticles:articles.filter(c=>c!==current).map(describe),chatHistory:this.chatHistory.capability(this.active?.rows[0],groupTypes)};
+   const describe=c=>({title:c.title||c.source?.title||captureTitle(c),url:c.url,body:c.article?.body||c.source?.body||'',cache:c.article?.cache||null,media:c.article?.media||null,initialPoints:c.analysis?.points||[],userRequirements:[c.requirements,c.focus].filter(Boolean).join('\n'),lastAssistantReply:c.agentReply||'',oldFailure:c.error||null,linkInteraction:c.focusAskedAt?'已反馈本链接首轮要点并追问重点。收到本次需求后实际整理、独立建议分类并询问尚缺的分类或待办意见；已明确不重问，无关聊天不套流程。':'本链接先整理要点并追问重点或补充，本轮不入库；不能从平台或旧收藏规则推断保存授权。'});
+   return {date:localDate(Date.now()),vaultPath:this.k.cfg.vaultPath,recentUserMessages:recent.map(r=>r.text),notes,currentResource:resource?{kind:resource.kind,title:resource.title||resource.source?.title||resource.article?.title,url:resource.url,files:resource.files,source:resource.source,interaction:['article','source'].includes(resource.kind)?describe(resource):null}:null,resources:records.filter(c=>['attachment','source'].includes(c.kind)).slice(-8).map(c=>({kind:c.kind,url:c.url,files:c.files||[],source:c.source||null,interaction:c.kind==='source'?describe(c):null})),currentArticle:current?describe(current):null,otherPendingArticles:articles.filter(c=>c!==current).map(describe),chatHistory:this.chatHistory.capability(this.active?.rows[0],groupTypes)};
  }
  async steer(row){
    const op=this.active;if(!op||op.peer!==row.peer||articleLinks(row.text).length||contentLinks(row.text).length)return false;
@@ -63,7 +63,7 @@ export class LiveAgent {
        const id='L'+createHash('sha256').update(row.id+':'+url).digest('hex').slice(0,12);
        const source=await this.k.contentReader.read(url,id,'url',{signal:controller.signal});
        if(controller.signal.aborted)throw Error('CODEX_CANCELLED');
-       c={id,peer:row.peer,kind:'source',title:source.title||url,url,source,status:'await_focus',revision:0,createdAt:new Date(row.created).toISOString()};
+       c={id,peer:row.peer,kind:'source',title:source.title||url,url,source,requirements:text.replace(url,'').trim(),status:'await_focus',revision:0,createdAt:new Date(row.created).toISOString()};
        this.store.saveCapture(c);this.store.set('resource-active:'+row.peer,id);
      }
      // Recover existing readable HTML/media without refetching a verification page.
@@ -96,7 +96,7 @@ export class LiveAgent {
    }catch(e){
      if(controller.signal.aborted&&this.store.db.prepare('SELECT state FROM inbox WHERE id=?').get(row.id)?.state==='cancelled')return true;
      if(c){const actual=this.store.capture(c.id);if(actual?.status==='cancelled')c=actual;else{c.status='failed';c.error=e.message;c.failedStage=e.message.startsWith('ARTICLE_')?'article':'agent';this.store.saveCapture(c);}}
-     this.store.set('agent-last-error:'+row.peer,JSON.stringify({code:e.message,detail:String(e.rpcDetail||'').replace(/Bearer\s+\S+/giu,'Bearer [REDACTED]').slice(0,1600),at:new Date().toISOString()}));
+     this.store.set('agent-last-error:'+row.peer,JSON.stringify({code:e.message,method:e.rpcMethod||null,elapsedMs:e.elapsedMs||null,limitMs:e.limitMs||null,detail:String(e.rpcDetail||'').replace(/Bearer\s+\S+/giu,'Bearer [REDACTED]').slice(0,1600),at:new Date().toISOString()}));
      this.k.finish(row,agentFailure(e),c);
      for(const extra of this.active?.rows.slice(1)||[])this.store.state(extra.id,'done');return true;
    }finally{clearTimeout(progress);this.preparing=null;this.active=null;this.k.currentThread=null;}

@@ -158,7 +158,7 @@ async function main() {
   };
   process.on('SIGINT',shutdown);process.on('SIGTERM',shutdown);
   try {
-    if(existsSync(stopFile)) unlinkSync(stopFile);
+    if(existsSync(stopFile)){await shutdown();return;}
     stage('weixin_check');await ilink.check();stage('codex_initialize');await codex.start();stage('sessions_restore');
     const knowledge=new Knowledge(store,codex,new ArticleReader(cfg,runtime),new Voice(cfg,runtime),new Vault(cfg.vaultPath,join(runtime,'backups','task-updates')),cfg);
     knowledge.chatHistory=new ChatHistory(cfg,store);

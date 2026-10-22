@@ -17,8 +17,10 @@ export function wireSchema(value) {
 export function independentEnvironment(environment=process.env){
   const result={...environment};
   for(const key of ['CODEX_TASK_WORKSPACE_VERIFYING_IDENTITY','CODEX_THREAD_ID','CODEX_SESSION_ID'])delete result[key];
+  result.WECHAT_ASSISTANT_CHILD='1';
   return result;
 }
+export function rpcBudget(method){return /^(?:initialize|account\/read|thread\/(?:start|resume|fork))$/u.test(method)?90000:30000;}
 export class Codex {
   constructor(binary, workspace, timeout = 180000, options={}) {
     this.binary=binary; this.workspace=workspace; this.timeout=timeout;
@@ -33,6 +35,7 @@ export class Codex {
       this.binary=selected;
     }
     const args=['app-server','--listen','stdio://','-c','web_search="live"','-c','sandbox_mode="workspace-write"','-c','sandbox_workspace_write.network_access=true','-c','sandbox_workspace_write.writable_roots='+JSON.stringify(this.writableRoots),'-c','approval_policy="on-request"','-c','approvals_reviewer="auto_review"','--enable','respect_system_proxy','--disable','multi_agent'];
+    args.push('-c','mcp_servers.wechat_local_assistant_startup.enabled=false');
     this.proc=spawn(this.binary,args,
       {cwd:this.workspace,env:independentEnvironment(),windowsHide:true,stdio:['pipe','pipe','pipe']});
     this.proc.stderr.on('data',()=>{}); // Never persist upstream diagnostic text or credentials.
@@ -51,11 +54,12 @@ export class Codex {
     if (!this.proc?.stdin?.writable) throw new Error('CODEX_DISCONNECTED');
     this.proc.stdin.write(JSON.stringify(value)+'\n');
   }
-  request(method,params,timeout=30000) {
+  request(method,params,timeout=rpcBudget(method)) {
     const id=this.next++;
     return new Promise((resolve,reject)=>{
-      const timer=setTimeout(()=>{this.requests.delete(id);reject(new Error('CODEX_RPC_TIMEOUT'));},timeout);
-      this.requests.set(id,{resolve,reject,timer});
+      const started=Date.now();
+      const timer=setTimeout(()=>{this.requests.delete(id);reject(Object.assign(new Error('CODEX_RPC_TIMEOUT'),{rpcMethod:method,elapsedMs:Date.now()-started,limitMs:timeout}));},timeout);
+      this.requests.set(id,{resolve,reject,timer,method,started});
       try { this.write({id,method,params}); } catch(e) {clearTimeout(timer);this.requests.delete(id);reject(e);}
     });
   }
@@ -85,7 +89,7 @@ export class Codex {
     if(pending) {
       this.requests.delete(message.id);clearTimeout(pending.timer);
       if(message.error) pending.reject(Object.assign(new Error(`CODEX_RPC_${message.error.code}`),
-        {rpcDetail:String(message.error.message).replace(/Bearer\s+\S+/gi,'Bearer [REDACTED]')}));else pending.resolve(message.result);
+        {rpcMethod:pending.method,elapsedMs:Date.now()-pending.started,rpcDetail:String(message.error.message).replace(/Bearer\s+\S+/gi,'Bearer [REDACTED]')}));else pending.resolve(message.result);
       return;
     }
     const p=message.params ?? {};

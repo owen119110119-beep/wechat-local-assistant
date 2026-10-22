@@ -2,7 +2,11 @@
 
 电脑开机联网。Codex 后台网关或 WorkBuddy 需运行。每个微信绑定只启动一个接收服务。启动会检查 Codex 执行组件是否完整，更新后自动选择完整安装。
 
-Codex 排障先读 `.runtime/status.json`、`gateway.log` 和相关进程，定位微信连接、网络、Codex 登录与额度、会话占用或知识库权限等具体原因。使用部署目录的 `scripts/start.ps1` 启动、`scripts/stop.ps1` 停止；`scripts/autostart-task.ps1 -Mode Enable` 启用登录后自启，`-Mode Disable` 关闭。
+Codex 排障先读 `.runtime/status.json`、`gateway.log` 和相关进程，定位微信连接、网络、Codex 登录与额度、会话占用或知识库权限等具体原因。使用部署目录的 `scripts/start.ps1` 启动、`scripts/stop.ps1` 停止；使用Node执行`scripts/configure-codex-startup.mjs --shell PowerShell7完整路径`接入Codex启动，`--disable`移除接入。旧版Windows登录任务用PowerShell 7执行`scripts/autostart-task.ps1 -Mode Disable`移除。
+
+
+
+打开Codex并加载或恢复聊天时，微信助理自动启动；仅打开首页尚未加载聊天时不保证已启动。无Windows登录任务或周期检查。主动stop保留停止选择，手动start恢复。启动记录为`.runtime/codex-startup.log`及同名stdout/stderr日志，均仅留本机。
 
 手机可自然询问状态、要求停止当前任务或新开对话。长会话压缩并保留背景，旧会话交接后归档；不自动删除历史。重启、超时或取消后不能自动重复文件写入，先核查已经完成的部分。
 

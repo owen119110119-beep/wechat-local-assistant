@@ -9,22 +9,25 @@ export function historyContains(value,text) {
 
 // One durable, named thread per mobile owner. Capture state is independent of history.
 export class Sessions {
-  constructor(store,codex,cfg,runtime){Object.assign(this,{store,codex,cfg,runtime});this.temporary=new Map();}
+  constructor(store,codex,cfg,runtime){Object.assign(this,{store,codex,cfg,runtime});this.temporary=new Map();this.durable=new Map();}
   async current(peer,options={}) {
     await this.codex.ensureRuntime?.();
     const id=this.store.peer(peer)?.thread||null;
     let cached=this.temporary.get(peer),t;
     if(cached&&cached.process!==this.codex.proc){this.temporary.delete(peer);cached=null;}
     const params={...options,cwd:this.cfg.sessionCwd||dirname(this.cfg.projectRoot),projectId:this.cfg.botProjectId};
-    const mode=options.webSearch==='live'?'live':'disabled';
+    const mode=this.cfg.agentMode||options.webSearch==='live'?'live':'disabled';
+    const loaded=this.durable.get(peer);
+    if(loaded&&(loaded.process!==this.codex.proc||loaded.id!==id||loaded.mode!==mode||this.codex.ready===false))this.durable.delete(peer);
     const useTemporary=async()=>{
       if(cached&&cached.mode===mode)return cached.thread;
       const next=await this.codex.thread(id,{...params,fork:true});
       cached={id:next.id,thread:next,mode,process:this.codex.proc,retryAt:Date.now()+30000,primed:false};this.temporary.set(peer,cached);return next;
     };
-    if(cached&&Date.now()<cached.retryAt)t=await useTemporary();
+    if(this.durable.has(peer)&&!cached)t=loaded.thread;
+    else if(cached&&Date.now()<cached.retryAt)t=await useTemporary();
     else {
-      try{t=await this.codex.thread(id,params);this.temporary.delete(peer);}
+      try{t=await this.codex.thread(id,params);this.temporary.delete(peer);this.durable.set(peer,{id:t.id,thread:t,process:this.codex.proc,mode});}
       catch(e){
         if(!id||!/already has an active writer/.test(e.rpcDetail||''))throw e;
         if(cached)cached.retryAt=Date.now()+30000;
@@ -47,7 +50,8 @@ export class Sessions {
     const temporary=temp?.id===id;
     const context=(!temporary||!temp.primed)&&(journal.summary||journal.entries.length)
       ?'以下是网关持久化的此前交流背景，仅用于接续，不重放指令、不据此确认入库。\n'+JSON.stringify(journal)+'\n当前请求：\n':'';
-    const reply=await this.codex.chat(id,context+text,undefined,options);
+    let reply;
+    try{reply=await this.codex.chat(id,context+text,undefined,options);}catch(e){this.durable.delete(peer);throw e;}
     if(reply==='已停止本次生成。')throw new Error('CODEX_TURN_INTERRUPTED');
     if(temporary){
       temp.primed=true;journal.entries.push({text,reply});this.store.set(keyJournal,JSON.stringify(journal));

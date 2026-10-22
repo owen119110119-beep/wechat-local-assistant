@@ -1,6 +1,18 @@
+param([switch]$RespectStop)
 $ErrorActionPreference = 'Stop'
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+$stopPath = Join-Path $projectRoot '.runtime/stop.request'
+if ($RespectStop -and (Test-Path -LiteralPath $stopPath)) { Write-Host 'Automatic start paused by user.'; exit 0 }
 . (Join-Path $PSScriptRoot 'gateway-state.ps1')
+$launchMutex=$null
+$launchOwned=$false
+if ($true) {
+    $launchHash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($projectRoot.ToLowerInvariant()))).Substring(0,16)
+    $launchMutex=[Threading.Mutex]::new($false,('Local\WeixinAgentStart-'+$launchHash))
+    try { $launchOwned=$launchMutex.WaitOne(120000) } catch [Threading.AbandonedMutexException] { $launchOwned=$true }
+    if (-not $launchOwned) { $launchMutex.Dispose();throw 'Another gateway startup is still active.' }
+}
+try {
 $config = Get-Content -LiteralPath (Join-Path $projectRoot 'config\local.json') -Raw | ConvertFrom-Json
 if ($config.agentMode -eq $true) {
     $selection = & $config.nodePath (Join-Path $projectRoot 'src\runtime.mjs') $config.codexPath
@@ -14,6 +26,7 @@ if ($config.agentMode -eq $true) {
 }
 $runtime = Join-Path $projectRoot '.runtime'
 New-Item -ItemType Directory -Path $runtime -Force | Out-Null
+if (-not $RespectStop -and (Test-Path -LiteralPath $stopPath)) { Remove-Item -LiteralPath $stopPath }
 $statusPath = Join-Path $runtime 'status.json'
 $gatewayPath = Join-Path $projectRoot 'src\gateway.mjs'
 $proc = $null
@@ -27,7 +40,10 @@ if ($existing.Count -eq 1) {
     }
     $proc = Get-Process -Id $existing[0].ProcessId
 }
-if (-not $proc) { $proc = Start-Process -FilePath $config.nodePath -ArgumentList @('"' + $gatewayPath + '"') -WorkingDirectory $projectRoot -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $runtime 'stdout.log') -RedirectStandardError (Join-Path $runtime 'stderr.log') }
+if (-not $proc) {
+    $proc = Start-Process -FilePath $config.nodePath -ArgumentList @('"' + $gatewayPath + '"') -WorkingDirectory $projectRoot -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $runtime 'stdout.log') -RedirectStandardError (Join-Path $runtime 'stderr.log')
+    Add-Content -LiteralPath (Join-Path $runtime 'lifecycle.log') -Value ("{0:o} started pid={1} launcher={2} route=local-starter" -f (Get-Date),$proc.Id,$PID) -Encoding utf8
+}
 $deadline = (Get-Date).AddSeconds(120)
 while ((Get-Date) -lt $deadline) {
     Start-Sleep -Milliseconds 600
@@ -42,3 +58,8 @@ while ((Get-Date) -lt $deadline) {
     if ($proc.HasExited) { throw 'Gateway exited. Check .runtime\stderr.log.' }
 }
 throw 'Gateway startup timed out. Check .runtime\status.json.'
+
+} finally {
+    if ($launchOwned) { $launchMutex.ReleaseMutex() }
+    if ($launchMutex) { $launchMutex.Dispose() }
+}
