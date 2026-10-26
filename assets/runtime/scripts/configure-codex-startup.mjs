@@ -14,7 +14,7 @@ export function startupConfig(original,{root,node,shell,enabled=true}){
   const rest=original.replace(pattern,'');
   if(/^\s*\[mcp_servers\.wechat_local_assistant_startup(?:\]|\.)/mu.test(rest))throw Error('An unmanaged startup entry already exists; no changes made.');
   if(!enabled)return rest;
-  const block=`${start}\n[mcp_servers.wechat_local_assistant_startup]\ncommand = ${JSON.stringify(node)}\nargs = ${JSON.stringify([script,shell])}\nenv_vars = ["WECHAT_ASSISTANT_CHILD"]\nenabled = true\nstartup_timeout_sec = 15\n${end}\n`;
+  const block=`${start}\n[mcp_servers.wechat_local_assistant_startup]\ncommand = ${JSON.stringify(node)}\nargs = ${JSON.stringify([script,shell])}\nenv_vars = ["WECHAT_ASSISTANT_CHILD"]\nenabled = true\nstartup_timeout_sec = 30\n${end}\n`;
   return matches.length?original.replace(pattern,()=>block):original+(original.endsWith('\n')?'':'\n')+'\n'+block;
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
