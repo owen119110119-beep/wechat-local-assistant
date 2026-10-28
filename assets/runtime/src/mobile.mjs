@@ -39,5 +39,5 @@ export function mobileText(text) {
     .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi,'')
     .replace(/(?:重试|取消)\s+编号/g,x=>x.split(/\s/)[0]);
 }
-export const captureTitle=c=>c.title||c.draft?.title||c.article?.title||c.idea?.title||(c.kind==='video'?'对标视频':'正文尚未读取的文章');
-export const capturePhase=c=>({reading:'读取中',analyzing:'提炼中',drafting:'整理中',writing:'保存中',await_focus:'等待关注点',await_opinion:'等待你的意见',await_confirmation:'等待分类或待办意见',await_video_save:'链接等待保存指令',failed:'尚未完成，可重试',archived:'已入库',cancelled:'已取消'})[c.status]||'待整理';
+export const captureTitle=c=>c.title||c.draft?.title||c.article?.title||c.idea?.title||(c.kind==='image_batch'?'图片整理':c.kind==='video'?'对标视频':'正文尚未读取的文章');
+export const capturePhase=c=>({collecting:'等待补充图片',ready:'图片已收齐',generated:'成果已生成',delivered:'成果已生成',reading:'读取中',analyzing:'提炼中',drafting:'整理中',writing:'保存中',await_focus:'等待关注点',await_opinion:'等待你的意见',await_confirmation:'等待分类或待办意见',await_video_save:'链接等待保存指令',failed:'尚未完成，可重试',archived:'已入库',cancelled:'已取消'})[c.status]||'待整理';

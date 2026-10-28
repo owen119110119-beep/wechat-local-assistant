@@ -18,3 +18,5 @@ python scripts/deploy.py --host workbuddy --target "D:\微信WorkBuddy助理" --
 公众号正文由 Skill 的 `scripts/read_wechat_article.py URL --output-dir 本机临时目录 --quiet` 读取，随后读生成的正文和元数据。检索、讨论和文件操作使用 WorkBuddy 自身工具。总结与分类建议分别表达；文字和已转写语音同等处理。依据实际读取、检索和保存结果回复。
 
 小红书和文件读取在部署目录执行 `python scripts/setup-content.py --with-media`，然后按[素材读取](content-reading.md)调用共享读取脚本，不安装Codex网关。
+
+升级后需要图片总结PDF时，在原部署目录运行`python scripts/setup-content.py`补齐依赖；已有模型、账号和笔记保留。连续图片、个性化处理及成果回微信按[图片整理](image-workflow.md)执行，使用WorkBuddy实际开放的编辑和附件工具。

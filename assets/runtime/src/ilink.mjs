@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomBytes, createHash } from 'node:crypto';
+import {uploadMedia} from './outgoing-media.mjs';
 
 export function validateBase(value) {
   const url = new URL(value);
@@ -43,10 +44,11 @@ export class Ilink {
   }
   poll(cursor, timeout) { return this.post('getupdates', {get_updates_buf:cursor}, timeout); }
   check() { return this.post('getconfig', {ilink_user_id:this.credentials.allowed[0]}, 15000); }
+  upload(media,peer){return uploadMedia(this,media,peer);}
   send(row, context) {
     if (!context) throw new Error('WEIXIN_CONTEXT_MISSING');
     return this.post('sendmessage', {msg:{from_user_id:'',to_user_id:row.peer,client_id:row.id,
-      message_type:2,message_state:2,context_token:context,item_list:[{type:1,text_item:{text:row.text}}]}}, 15000);
+      message_type:2,message_state:2,context_token:context,item_list:[row.mediaItem||{type:1,text_item:{text:row.text}}]}}, 15000);
   }
 }
 export function normalizeMessages(msgs, allowed, acceptSince = 0) {

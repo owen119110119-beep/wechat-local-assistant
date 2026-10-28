@@ -27,7 +27,7 @@ def payload_files(host):
         for name in ['pair-weixin.mjs','read_wechat_article.py','install-dependencies.mjs','install-dependencies.py']:
             result['scripts/'+name]=SKILL/'scripts'/name
         return result
-    shared=['article_media.py','content_reader.py','browser_provider.py','isaac64.py','THIRD_PARTY_NOTICES.md','requirements-content.txt','requirements-media.txt','requirements-voice.lock.txt','setup-content.py','transcribe.py']
+    shared=['article_media.py','content_reader.py','browser_provider.py','isaac64.py','THIRD_PARTY_NOTICES.md','requirements-content.txt','requirements-media.txt','requirements-voice.lock.txt','setup-content.py','transcribe.py','image_report.py']
     return {**{'scripts/'+name:runtime/'scripts'/name for name in shared},'scripts/read_wechat_article.py':SKILL/'scripts/read_wechat_article.py'}
 
 def codex_runtime_complete(path):

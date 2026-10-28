@@ -89,12 +89,16 @@ export class Gateway {
   async deliver() {
     for(const row of this.store.outgoing()) {
       try {
-        await this.ilink.send({...row,text:mobileText(row.text)},this.store.peer(row.peer)?.context);
+        let mediaItem;
+        if(row.media){const media=JSON.parse(row.media);if((media.batch&&this.store.capture(media.batch)?.status==='cancelled')||this.store.db.prepare('SELECT state FROM inbox WHERE id=?').get(row.source)?.state==='cancelled'){this.store.db.prepare("UPDATE outbox SET state='cancelled' WHERE id=?").run(row.id);continue;}mediaItem=media.uploaded;if(!mediaItem){mediaItem=await this.ilink.upload(media,row.peer);this.store.mediaUploaded(row.id,mediaItem);}if((media.batch&&this.store.capture(media.batch)?.status==='cancelled')){this.store.db.prepare("UPDATE outbox SET state='cancelled' WHERE id=?").run(row.id);continue;}}
+        await this.ilink.send({...row,text:mobileText(row.text),mediaItem},this.store.peer(row.peer)?.context);
         this.store.sent(row.id);this.lastReply=new Date().toISOString();
       } catch(e) {
         const attempts=row.attempts+1;
         this.error=/^WEIXIN_[A-Z_0-9-]+$/.test(e.message)?e.message:'WEIXIN_SEND_NETWORK_ERROR';
-        this.store.retry(row.id,attempts,Math.min(60000,2000*2**attempts),attempts>=5||e.code===-14);
+        const terminal=attempts>=5||e.code===-14||/MEDIA_(?:CONTENT|SIZE|PATH|LINK)|UNTRUSTED_HOST/u.test(e.message);
+        this.store.retry(row.id,attempts,Math.min(60000,2000*2**attempts),terminal);
+        if(row.media&&terminal){const media=JSON.parse(row.media);this.store.enqueue(row.source,row.peer,[`文件《${media.name}》已生成，但${e.code===-14?'微信连接已失效，暂未送达。恢复连接后可以让我补发。':/MEDIA_CONTENT/u.test(e.message)?'发送前发现文件被修改，已停止发送，需要先重新核对文件。':'暂时未能发送到微信。生成结果保留，可以让我补发，不需要重新上传图片。'}`]);}
       }
     }
     await this.knowledge?.chatHistory?.flush();

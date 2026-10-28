@@ -42,7 +42,7 @@ export class Sessions {
     return t;
   }
   state(peer) {
-    return this.store.captures(peer).filter(c=>!['archived','cancelled'].includes(c.status)).map(c=>({title:captureTitle(c),phase:capturePhase(c),requirements:c.requirements,focus:c.focus||'',confirmed:!!c.confirmation}));
+    return this.store.captures(peer).filter(c=>!['archived','cancelled'].includes(c.status)&&!(c.kind==='image_batch'&&['generated','delivered'].includes(c.status))).map(c=>({title:captureTitle(c),phase:capturePhase(c),requirements:c.requirements,focus:c.focus||'',confirmed:!!c.confirmation}));
   }
   async chat(peer,id,text,options={}) {
     const temp=this.temporary.get(peer),keyJournal='session-continuity:'+peer;

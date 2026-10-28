@@ -136,7 +136,7 @@ export class Codex {
     let timer;
     try {
       const capabilities={environments:[{environmentId:'local',cwd:this.workspace,runtimeWorkspaceRoots:this.writableRoots}],approvalPolicy:'on-request',approvalsReviewer:'auto_review',sandboxPolicy:{type:'workspaceWrite',writableRoots:this.writableRoots,networkAccess:true}};
-      const turn=await this.request('turn/start',{threadId,input:[{type:'text',text}],...capabilities,effort:'medium',summary:'concise',
+      const turn=await this.request('turn/start',{threadId,input:[{type:'text',text},...(options.images||[]).map(path=>({type:'localImage',path}))],...capabilities,effort:'medium',summary:'concise',
         ...(options.outputSchema?{outputSchema:wireSchema(options.outputSchema)}:{})});
       active.turnId=turn.turn.id;
       if(active.cancelRequested) await this.cancel(threadId);
@@ -149,7 +149,7 @@ export class Codex {
         {rpcDetail:String(result.error?.message||result.error?.codexErrorInfo||result.status).replace(/Bearer\s+\S+/gi,'Bearer [REDACTED]')});
       options.onSearchEvidence?.(active.searches);
       const final=active.items.filter(i=>i.phase==='final_answer'||i.phase==='finalAnswer');
-      const reply=(final.length?final:active.items.slice(-1)).map(i=>i.text).join('\n\n') || '此次任务没有产生文字回复。';
+      const reply=(final.length?final:active.items.slice(-1)).map(i=>i.text).join('\n\n') || (options.allowEmptyFinal?'':'此次任务没有产生文字回复。');
       if(options.requireWebSearch&&!active.searches.some(x=>x.action?.type==='search'||x.query))throw Object.assign(new Error('KNOWLEDGE_SEARCH_NOT_PERFORMED'),{searchEvidence:active.searches,searchReply:reply});
       return reply;
     } catch(e) {

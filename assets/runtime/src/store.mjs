@@ -1,5 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
-import { randomUUID } from 'node:crypto';
+import { randomUUID,createHash } from 'node:crypto';
 import { mobileText } from './mobile.mjs';
 
 export class Store {
@@ -13,7 +13,7 @@ export class Store {
       CREATE TABLE IF NOT EXISTS outbox (id TEXT PRIMARY KEY, peer TEXT NOT NULL, text TEXT NOT NULL,
         state TEXT NOT NULL DEFAULT 'pending', attempts INTEGER NOT NULL DEFAULT 0, next INTEGER NOT NULL DEFAULT 0);
     `);
-    for(const [table,column,definition] of [['inbox','media',"TEXT NOT NULL DEFAULT '[]'"],['inbox','voice','INTEGER NOT NULL DEFAULT 0'],['outbox','gate','TEXT'],['outbox','source','TEXT']]) {
+    for(const [table,column,definition] of [['inbox','media',"TEXT NOT NULL DEFAULT '[]'"],['inbox','voice','INTEGER NOT NULL DEFAULT 0'],['outbox','gate','TEXT'],['outbox','source','TEXT'],['outbox','media','TEXT']]) {
       if(!this.db.prepare(`PRAGMA table_info(${table})`).all().some(r=>r.name===column)) this.db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
     }
     this.db.exec('CREATE TABLE IF NOT EXISTS captures (id TEXT PRIMARY KEY, peer TEXT NOT NULL, data TEXT NOT NULL)');
@@ -56,7 +56,7 @@ export class Store {
   }
   recover() {
     const rows = this.db.prepare("SELECT * FROM inbox WHERE state='running'").all();
-    for (const row of rows) this.complete(row.id, row.peer, ['上次任务因服务重启中断，尚未完成。你可以让我继续；继续前会先核对已有结果，避免重复保存。']);
+    for (const row of rows){const output=this.db.prepare('SELECT 1 FROM outbox WHERE source=? AND media IS NOT NULL').get(row.id);this.complete(row.id, row.peer, [output?'上次回复因服务重启中断，已生成的文件保留。我会接着发送尚未送达的文件；其余内容继续前先核对已有结果，避免重复处理。':'上次任务因服务重启中断，尚未完成。你可以让我继续；继续前会先核对已有结果，避免重复保存。']);}
     return rows.length;
   }
   outgoing() {
@@ -66,6 +66,12 @@ export class Store {
       ORDER BY rowid`).all(Date.now());
   }
   enqueue(source,peer,chunks){for(const text of chunks)this.db.prepare('INSERT INTO outbox(id,peer,text,source) VALUES (?,?,?,?)').run(randomUUID(),peer,mobileText(text),source);}
+  enqueueMedia(source,peer,media){
+    const id='media-'+createHash('sha256').update(source+'\0'+peer+'\0'+media.sha256).digest('hex');
+    this.db.prepare("INSERT INTO outbox(id,peer,text,source,media) VALUES (?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET state=CASE WHEN outbox.state='failed' THEN 'pending' ELSE outbox.state END,attempts=CASE WHEN outbox.state='failed' THEN 0 ELSE outbox.attempts END,next=0").run(id,peer,'',source,JSON.stringify(media));
+    return this.db.prepare('SELECT id,state FROM outbox WHERE id=?').get(id);
+  }
+  mediaUploaded(id,item){const row=this.db.prepare('SELECT media FROM outbox WHERE id=?').get(id);const media=JSON.parse(row.media);media.uploaded=item;this.db.prepare('UPDATE outbox SET media=? WHERE id=?').run(JSON.stringify(media),id);}
   sent(id) {
     this.db.exec('BEGIN IMMEDIATE');
     try {

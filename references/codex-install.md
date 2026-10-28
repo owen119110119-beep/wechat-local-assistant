@@ -6,6 +6,8 @@
 
 先检测并登录官方 Codex，准备 Node.js >=22.13、Python >=3.10、PowerShell 7。优先使用已有或 Codex 捆绑运行时，缺少时安装官方版本；不覆盖已有环境。Codex 需支持本机 App Server，连接错误按运行说明排查。
 
+从旧安装升级后，恢复服务前在原部署目录运行`python scripts/setup-content.py`，补齐图片总结PDF所需的项目依赖；已有微信绑定、知识库和本机转写模型保留，不需要重新下载模型或扫码。
+
 用本机 Python 在 Skill 根目录执行，示例路径换成用户选择的实际路径：
 
 ```powershell

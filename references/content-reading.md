@@ -13,4 +13,4 @@ Codex网关自动处理微信收到的小红书分享链接、网页链接及图
 
 小红书支持 `xhslink.cn`、`xhslink.com` 与完整笔记链接。遇登录要求时，用部署目录 `.venv\Scripts\python.exe scripts/browser_provider.py auth --provider xiaohongshu` 打开专用浏览器，请用户完成一次登录；后续复用本机登录，不让用户发Cookie或密码，不处理验证码绕过。
 
-PDF支持正文和扫描页OCR；Office支持DOCX、PPTX、XLSX；图片OCR与音视频证据使用本机处理。读取后沿用文章两步整理规则：先核心要点与重点追问，再结合需求研究、独立建议分类，明确选择后保存。收到新素材时以新素材为当前对象；普通聊天继续自然回应。
+PDF支持正文和扫描页OCR；Office支持DOCX、PPTX、XLSX；图片OCR与音视频证据使用本机处理。链接及文档整理沿用文章两步规则；连续课件图片和明确图片任务按[图片整理](image-workflow.md)收齐后整合或直接响应，生成物不自动入库。收到新素材时以新素材为当前对象；普通聊天继续自然回应。
