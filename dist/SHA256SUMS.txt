@@ -1,1 +1,1 @@
-dd63d8059172b5cd29e7e9902a41d7d0a9b92da17035c1e39f8904acde960abe  wechat-local-assistant.zip
+3ba82302fcba94c3e1e755ed2d03064168796baa7df31fc61abc9a66647105b3  wechat-local-assistant.zip
