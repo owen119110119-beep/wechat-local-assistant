@@ -14,6 +14,13 @@ WINDOWS_CODEX_COMPONENTS = ['codex-code-mode-host.exe', 'codex-command-runner.ex
 POLICY_START='<!-- wechat-local-assistant:policy:start -->'
 POLICY_END='<!-- wechat-local-assistant:policy:end -->'
 
+def compatible_python(binary):
+    if 'WindowsApps' in Path(binary).parts:return False
+    try:
+        result=subprocess.run([str(binary),'-c','import sys;assert sys.version_info >= (3,12)'],capture_output=True,timeout=12)
+        return result.returncode==0
+    except (OSError,subprocess.SubprocessError):return False
+
 def managed_policy(vault):
     policy=(SKILL/'references/interaction.md').read_text(encoding='utf-8')
     policy+='\n\n当前知识库绝对路径：'+str(vault)+'\n'
@@ -40,23 +47,32 @@ def find_binary(kind, explicit=None):
             raise ValueError(f'{kind} executable missing')
         if kind == 'codex' and not codex_runtime_complete(p):
             raise ValueError('Codex execution components missing; select a complete official installation')
+        if kind == 'python' and not compatible_python(p):raise ValueError('项目依赖需要Python >=3.12；请使用官方Python3.12，保留已有旧环境。')
         return str(p)
     local = Path(os.environ.get('LOCALAPPDATA', Path.home() / 'AppData/Local'))
     cache = Path.home() / '.cache/codex-runtimes/codex-primary-runtime/dependencies'
     codex_roots={local / 'OpenAI/Codex/bin',Path.home() / 'AppData/Local/OpenAI/Codex/bin'}
-    fixed = {'node': [cache / 'node/bin/node.exe',Path(os.environ.get('ProgramFiles','C:/Program Files'))/'nodejs/node.exe'], 'python': [cache / 'python/python.exe'],
+    fixed = {'node': [cache / 'node/bin/node.exe',Path(os.environ.get('ProgramFiles','C:/Program Files'))/'nodejs/node.exe'],
+             'python': [cache / 'python/python.exe',local/'Programs/Python/Python312/python.exe',Path(os.environ.get('ProgramFiles','C:/Program Files'))/'Python312/python.exe'],
              'pwsh': [cache/'native/powershell/pwsh.exe',Path(os.environ.get('ProgramFiles','C:/Program Files'))/'PowerShell/7/pwsh.exe'],
              'codex': sorted({p for base in codex_roots for p in base.glob('*/codex.exe')}, key=lambda p:p.stat().st_mtime, reverse=True)}
     for p in fixed.get(kind, []):
-        if p.is_file() and (kind != 'codex' or codex_runtime_complete(p)):
+        if p.is_file() and (kind != 'codex' or codex_runtime_complete(p)) and (kind != 'python' or compatible_python(p)):
             return str(p.resolve())
     found = shutil.which(kind)
-    if found:
+    if found and (kind != 'python' or compatible_python(found)):
         if kind == 'codex' and not codex_runtime_complete(Path(found)):
             raise ValueError('Codex execution components missing; repair the official installation')
         return str(Path(found).resolve())
     if kind == 'python':
-        return sys.executable
+        if compatible_python(sys.executable):return sys.executable
+        launcher=shutil.which('py')
+        if launcher:
+            try:
+                chosen=subprocess.run([launcher,'-3.12','-c','import sys;print(sys.executable)'],capture_output=True,text=True,timeout=15,check=True).stdout.strip()
+                if Path(chosen).is_file() and compatible_python(chosen):return chosen
+            except (OSError,subprocess.SubprocessError):pass
+        raise ValueError('项目依赖需要官方Python3.12；自动安装入口可补齐，或安装后传--python实际程序路径。')
     raise ValueError(f'{kind} missing; install official runtime or supply --{kind}')
 
 def initialize_vault(vault):
@@ -75,7 +91,7 @@ def deploy(args):
     if any(p.is_symlink() or (hasattr(p, 'is_junction') and p.is_junction()) for p in [target,vault,*target.parents,*vault.parents]):
         raise ValueError('Linked/junction targets refused')
     cfg = {'host':args.host, 'vaultPath':str(vault), 'pythonPath':find_binary('python',args.python)}
-    subprocess.run([cfg['pythonPath'],'-c','import sys,venv,ensurepip;assert sys.version_info >= (3,10)'],capture_output=True,check=True,timeout=15)
+    subprocess.run([cfg['pythonPath'],'-c','import sys,venv,ensurepip;assert sys.version_info >= (3,12)'],capture_output=True,check=True,timeout=15)
     if args.host == 'codex':
         cfg.update(nodePath=find_binary('node', args.node), pythonPath=find_binary('python', args.python), codexPath=find_binary('codex', args.codex))
         version = subprocess.run([cfg['nodePath'],'-p',"process.versions.node"], capture_output=True, text=True, encoding='utf-8', check=True).stdout.strip()

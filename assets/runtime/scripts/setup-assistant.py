@@ -115,7 +115,11 @@ def setup(root, check_only=False, with_media=False, host_path=None, runner=run):
             # Do not echo pip/browser output: it can contain authenticated index URLs.
             return None
 
-    if not check_only:
+    usable_python = True
+    if binary.is_file():
+        usable_python = stage('python_environment', [binary, '-B', '-c', 'import sys;assert sys.version_info >= (3,12)'], 20) is not None
+        if not usable_python:failure='python_environment'
+    if not check_only and usable_python:
         tmp.mkdir(parents=True, exist_ok=True)
         (root/'.runtime/installation-check.json').write_text(json.dumps({'status': 'checking', 'fullyReady': False}), encoding='utf-8')
         if not binary.is_file():
@@ -155,7 +159,7 @@ def setup(root, check_only=False, with_media=False, host_path=None, runner=run):
                 if stage('repair_speech_model', [binary, '-c', repair, root/'.runtime/models/base'], 1200) is None:failure=failure or 'repair_speech_model'
             final = stage('final_checks', [binary, '-B', root/'scripts/dependency_probe.py', '--root', root, '--smoke'] + (['--with-media'] if with_media else []), 180)
             checks = json.loads(final.stdout)['checks'] if final else checks
-    elif binary.is_file():
+    elif check_only and binary.is_file() and usable_python:
         inspected = stage('read_only_checks', [binary, '-B', root/'scripts/dependency_probe.py', '--root', root] + (['--with-media'] if with_media else []), 120)
         checks = json.loads(inspected.stdout)['checks'] if inspected else []
     if not checks:
@@ -182,6 +186,7 @@ def setup(root, check_only=False, with_media=False, host_path=None, runner=run):
     if failure or not ready:
         guidance.append('依赖未齐，保留已安装部分。检查下载网络、磁盘和执行权限，再运行同一安装入口重试；不要重复部署或扫码。不会修改代理、证书或微信。')
         guidance.append('软件源无兼容包时使用官方Python 3.12建立新部署环境；不要删除或替换现有环境。PDF字体缺失请安装系统中文字体；浏览器受策略限制请在获准环境运行。')
+    if not usable_python:guidance.append('现有项目Python低于3.12或不可运行；已保留旧环境且未安装新依赖。请用官方Python3.12建立新的专用环境，再安全迁移原配置与笔记。')
     fixes = {'pdf': 'PDF依赖或中文字体不可用；补齐系统中文字体后重试安装检查。',
              'browser': '浏览器未能启动；项目Chromium安装和本机执行权限需要核对，不改系统浏览器或网络。',
              'ocr': '本机OCR无法运行；核对当前Python的ONNX运行环境和平台支持，建议官方Python3.12。',

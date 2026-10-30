@@ -6,3 +6,5 @@ yt-dlp==2026.8.19
 av==16.1.0
 
 imageio-ffmpeg==0.6.0
+
+numpy==2.5.3

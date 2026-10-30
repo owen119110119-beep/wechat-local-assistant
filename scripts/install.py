@@ -21,14 +21,14 @@ def runtime(kind, explicit=None):
             if int(version) < 7:raise ValueError('PowerShell 7 required')
         return binary
     except (ValueError, OSError, subprocess.SubprocessError):
-        if explicit or kind not in {'node', 'pwsh'} or os.name != 'nt':raise
+        if explicit or kind not in {'node', 'pwsh', 'python'} or os.name != 'nt':raise
         winget = shutil.which('winget.exe')
-        if not winget:raise ValueError('缺少'+kind+'且未找到winget；请从nodejs.org或learn.microsoft.com/powershell安装官方运行时后重试。')
-        package = {'node': 'OpenJS.NodeJS.LTS', 'pwsh': 'Microsoft.PowerShell'}[kind]
+        if not winget:raise ValueError('缺少'+kind+'且未找到winget；请从python.org、nodejs.org或learn.microsoft.com/powershell安装对应官方运行时后重试。')
+        package = {'node': 'OpenJS.NodeJS.LTS', 'pwsh': 'Microsoft.PowerShell', 'python': 'Python.Python.3.12'}[kind]
         result = subprocess.run([winget, 'install', '--id', package, '--exact', '--source', 'winget',
                                  '--accept-package-agreements', '--accept-source-agreements', '--disable-interactivity'], capture_output=True, timeout=600)
         if result.returncode:raise ValueError('官方运行时安装未完成：'+kind+'。核对安装权限和网络后重试，保留已有环境。')
-        standard = Path(os.environ.get('ProgramFiles','C:/Program Files'))/('nodejs/node.exe' if kind == 'node' else 'PowerShell/7/pwsh.exe')
+        standard = Path(os.environ.get('LOCALAPPDATA',str(Path.home()/'AppData/Local')))/'Programs/Python/Python312/python.exe' if kind == 'python' else Path(os.environ.get('ProgramFiles','C:/Program Files'))/('nodejs/node.exe' if kind == 'node' else 'PowerShell/7/pwsh.exe')
         return runtime(kind, str(standard) if standard.is_file() else find_binary(kind))
 
 
@@ -68,6 +68,7 @@ def install(args):
             raise ValueError('旧部署尚无安装检查入口；先按升级说明用upgrade.py安全升级，再重试。')
         # A second invocation repairs deps only, never overwrites managed/custom code.
     else:
+        args.python = find_binary('python',args.python) if args.check_only else runtime('python',args.python)
         if args.host == 'codex':
             args.node = find_binary('node', args.node) if args.check_only else runtime('node', args.node)
             args.pwsh = find_binary('pwsh', args.pwsh) if args.check_only else runtime('pwsh', args.pwsh)

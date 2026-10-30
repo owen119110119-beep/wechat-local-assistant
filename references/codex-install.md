@@ -4,7 +4,7 @@
 
 已有本Skill部署的助理，先等任务结束并停止服务，再执行`python 新版Skill目录/scripts/upgrade.py --target 原安装目录 --check-only`核对，去掉`--check-only`执行升级。脚本备份被替换文件，保留配置、绑定、消息、依赖和知识库；发现自定义代码或旧规则改动则保留并交给助理合并，不能覆盖。同版升级后，按下面步骤配置Codex启动接入，再用`scripts/start.ps1`启动，无需重新扫码。旧版启用过Windows登录自启的，先用PowerShell 7运行`scripts/autostart-task.ps1 -Mode Disable`移除旧任务，不影响绑定和笔记。
 
-先按[安装检查](installation-check.md)核对实际宿主工具并登录官方Codex。优先使用已有或Codex捆绑运行时；推荐Python3.12，最低3.10。统一入口检测Node.js >=22.13、PowerShell7，缺少时尝试官方安装；不覆盖已有环境。Codex需支持本机App Server，缺少/未登录引导官方安装或登录，不借用其他人的账号。
+先按[安装检查](installation-check.md)核对实际宿主工具并登录官方Codex。优先使用已有或Codex捆绑运行时；项目依赖需要Python >=3.12，优先使用3.12。统一入口检测Python、Node.js >=22.13、PowerShell7，缺少时尝试官方安装；不覆盖已有环境。Codex需支持本机App Server，缺少/未登录引导官方安装或登录，不借用其他人的账号。
 
 从旧安装升级后，恢复服务前在原部署目录运行`python scripts/setup-content.py`，补齐图片总结PDF所需的项目依赖；已有微信绑定、知识库和本机转写模型保留，不需要重新下载模型或扫码。
 

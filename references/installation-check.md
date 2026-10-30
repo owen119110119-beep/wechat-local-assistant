@@ -6,7 +6,7 @@
 
 先发现已有部署与知识库。新部署用Skill目录中的`scripts/install.py --host codex或workbuddy --target 专用目录 --vault 知识库目录`。重复相同命令只检查和补依赖，不覆盖已有代码、账号或笔记。旧版本先用`upgrade.py`检查并安全升级，再运行安装检查；不能直接覆盖自定义文件。不要替用户重新扫码。
 
-需要本机音频转写时追加`--with-media`，才下载转写依赖和模型。微信已有语音文字无需本机转写。默认补齐公众号、网页、小红书读取、Office、PDF、OCR、浏览器和视频处理依赖。Codex同时补齐二维码、SILK并验证Node、PowerShell；缺少Node/PowerShell时尝试官方winget安装，受权限/网络限制就明确引导，不关闭审批。安装前需已有官方Codex/WorkBuddy及Python；Python不可用时，助理先检测`py -3.12`等已有运行时，没有则通过`winget install --id Python.Python.3.12 --exact --source winget`安装官方Python，重新发现真实解释器后运行安装脚本，不猜路径。推荐Python3.12；运行时不兼容不能用装成功几个包来报告成功。
+需要本机音频转写时追加`--with-media`，才下载转写依赖和模型。微信已有语音文字无需本机转写。默认补齐公众号、网页、小红书读取、Office、PDF、OCR、浏览器和视频处理依赖。当前依赖需要Python >=3.12，优先使用3.12；统一入口自动发现合适的已有/捆绑Python，缺少时使用官方winget安装，保留旧Python。Codex同时补齐二维码、SILK并验证Node、PowerShell；缺少Node/PowerShell时尝试官方安装，受权限/网络限制就明确引导，不关闭审批。安装前需已有官方Codex/WorkBuddy；若连运行安装脚本的Python都没有，助理先检测`py -3.12`等运行时，没有则通过`winget install --id Python.Python.3.12 --exact --source winget`安装官方Python，重新发现真实解释器后继续，不猜路径。旧部署的旧Python环境不自动覆盖，说明兼容性问题并协助保留原配置迁移；不能用装成功几个包来报告成功。
 
 Obsidian先查已有安装，缺少时用官方安装途径补齐，保留笔记与插件；检测不完整或仅找到安装记录时，先核对原位置，不盲目重装。检测和安装有等待上限，安装器超时时先读回实际结果，勿重复启动；给出官方下载入口，不阻塞其他依赖检查。不要更改微信、系统代理、VPN或证书，也不要复用其他Skill的依赖目录。下载失败保留已安装部分，报告失败阶段和解决办法，用同一命令继续。取消即停止，不继续扫码或启动。
 
