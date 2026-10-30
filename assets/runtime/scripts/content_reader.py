@@ -223,10 +223,9 @@ def platform_media(url,output,model_dir):
              'socket_timeout':20,'retries':0,'quiet':True,'no_warnings':True,'cachedir':False,
              'format':'best[ext=mp4]/best','writesubtitles':True,'writeautomaticsub':True,
              'subtitleslangs':['zh.*','en.*'],'subtitlesformat':'vtt'}
-    ffmpeg=shutil.which('ffmpeg')
-    if not ffmpeg:
-        ffmpeg=next((str(p) for p in (Path.home()/'.codex/tools/watch-deps/ffmpeg').glob('*/bin/ffmpeg.exe')),None)
-    if ffmpeg:options['ffmpeg_location']=str(Path(ffmpeg).parent)
+    from local_tools import ffmpeg_path
+    ffmpeg=ffmpeg_path()
+    if ffmpeg:options['ffmpeg_location']=ffmpeg
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
         with YoutubeDL(options) as dl:
             info=dl.extract_info(url,download=True)

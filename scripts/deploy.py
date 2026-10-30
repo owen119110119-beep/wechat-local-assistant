@@ -27,8 +27,8 @@ def payload_files(host):
         for name in ['pair-weixin.mjs','read_wechat_article.py','install-dependencies.mjs','install-dependencies.py']:
             result['scripts/'+name]=SKILL/'scripts'/name
         return result
-    shared=['article_media.py','content_reader.py','browser_provider.py','isaac64.py','THIRD_PARTY_NOTICES.md','requirements-content.txt','requirements-media.txt','requirements-voice.lock.txt','setup-content.py','transcribe.py','image_report.py']
-    return {**{'scripts/'+name:runtime/'scripts'/name for name in shared},'scripts/read_wechat_article.py':SKILL/'scripts/read_wechat_article.py'}
+    shared=['article_media.py','content_reader.py','browser_provider.py','isaac64.py','THIRD_PARTY_NOTICES.md','requirements-content.txt','requirements-media.txt','requirements-voice.lock.txt','transcribe.py','image_report.py']
+    return {**{'scripts/'+name:runtime/'scripts'/name for name in shared},**{'scripts/'+name:SKILL/'scripts'/name for name in ['read_wechat_article.py','setup-content.py','setup-assistant.py','dependency_probe.py','local_tools.py']}}
 
 def codex_runtime_complete(path):
     return path.is_file() and (os.name != 'nt' or all((path.parent / name).is_file() for name in WINDOWS_CODEX_COMPONENTS))
@@ -44,7 +44,8 @@ def find_binary(kind, explicit=None):
     local = Path(os.environ.get('LOCALAPPDATA', Path.home() / 'AppData/Local'))
     cache = Path.home() / '.cache/codex-runtimes/codex-primary-runtime/dependencies'
     codex_roots={local / 'OpenAI/Codex/bin',Path.home() / 'AppData/Local/OpenAI/Codex/bin'}
-    fixed = {'node': [cache / 'node/bin/node.exe'], 'python': [cache / 'python/python.exe'],
+    fixed = {'node': [cache / 'node/bin/node.exe',Path(os.environ.get('ProgramFiles','C:/Program Files'))/'nodejs/node.exe'], 'python': [cache / 'python/python.exe'],
+             'pwsh': [cache/'native/powershell/pwsh.exe',Path(os.environ.get('ProgramFiles','C:/Program Files'))/'PowerShell/7/pwsh.exe'],
              'codex': sorted({p for base in codex_roots for p in base.glob('*/codex.exe')}, key=lambda p:p.stat().st_mtime, reverse=True)}
     for p in fixed.get(kind, []):
         if p.is_file() and (kind != 'codex' or codex_runtime_complete(p)):
@@ -73,7 +74,8 @@ def deploy(args):
         raise ValueError('Non-empty deployment target refused; existing files preserved')
     if any(p.is_symlink() or (hasattr(p, 'is_junction') and p.is_junction()) for p in [target,vault,*target.parents,*vault.parents]):
         raise ValueError('Linked/junction targets refused')
-    cfg = {'host':args.host, 'vaultPath':str(vault)}
+    cfg = {'host':args.host, 'vaultPath':str(vault), 'pythonPath':find_binary('python',args.python)}
+    subprocess.run([cfg['pythonPath'],'-c','import sys,venv,ensurepip;assert sys.version_info >= (3,10)'],capture_output=True,check=True,timeout=15)
     if args.host == 'codex':
         cfg.update(nodePath=find_binary('node', args.node), pythonPath=find_binary('python', args.python), codexPath=find_binary('codex', args.codex))
         version = subprocess.run([cfg['nodePath'],'-p',"process.versions.node"], capture_output=True, text=True, encoding='utf-8', check=True).stdout.strip()
@@ -84,6 +86,8 @@ def deploy(args):
         check = subprocess.run([cfg['codexPath'],'--version'],capture_output=True,text=True,encoding='utf-8',check=True).stdout.strip()
         if not check.startswith('codex-cli '):
             raise ValueError('Unexpected Codex executable')
+        cfg['shellPath']=find_binary('pwsh',getattr(args,'pwsh',None))
+        subprocess.run([cfg['shellPath'],'-NoProfile','-Command','if ($PSVersionTable.PSVersion.Major -lt 7) { exit 1 }'],capture_output=True,check=True,timeout=15)
         cfg.update(agentMode=True, agentTimeoutMs=600000, turnTimeoutMs=180000, pollTimeoutMs=40000,
                    replyChunkLength=1600, compactAfterTurns=40, compactAfterChars=50000,
                    credentialsSource=str(target / '.runtime/credentials'),
@@ -108,14 +112,15 @@ def deploy(args):
     manifest = {str(p.relative_to(target)):hashlib.sha256(p.read_bytes()).hexdigest() for p in target.rglob('*') if p.is_file()}
     version=json.loads((SKILL/'assets/runtime/package.json').read_text(encoding='utf-8'))['version']
     (target / '.runtime/deployment.json').write_text(json.dumps({'version':version,'host':args.host,'files':manifest,'started':False,'paired':False},ensure_ascii=False,indent=2),encoding='utf-8')
-    return {'deployed':True,'host':args.host,'target':str(target),'vault':str(vault),'started':False,'paired':False}
+    return {'deployed':True,'host':args.host,'target':str(target),'vault':str(vault),'started':False,'paired':False,
+            'dependenciesReady':False,'nextStep':'运行部署目录scripts/setup-assistant.py，补齐依赖并核对宿主工具后再绑定、验收。'}
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--host',choices=['codex','workbuddy'],required=True)
     parser.add_argument('--target',required=True)
     parser.add_argument('--vault',required=True)
-    for name in ['node','python','codex','project-id']:
+    for name in ['node','python','codex','pwsh','project-id']:
         parser.add_argument('--'+name)
     parser.add_argument('--check-only',action='store_true')
     try:

@@ -20,6 +20,8 @@
 - **WorkBuddy**：在“技能 → 添加技能 → 上传技能”导入安装包，在微信助理会话中启用此 Skill，使用 WorkBuddy 原生微信连接。
 - **Obsidian**：告诉助理你的知识库路径；已有安装和笔记会保留，未安装时由助理协助安装。
 
+安装时自动检查并补齐项目依赖，逐项验证读取、OCR和PDF等功能；宿主缺少修图、联网或附件工具时，会明确说明并给出启用方法。详见[安装检查](references/installation-check.md)。
+
 首次安装需登录宿主并用手机扫码连接微信，已经运行的助理不用重复绑定。
 
 已有安装：导入新版Skill后，让助理升级原部署目录，保留配置、微信绑定与笔记，无需重新扫码。手动步骤见[Codex安装与升级](references/codex-install.md)或[WorkBuddy安装](references/workbuddy.md)。[旧版1.0.0](https://github.com/owen119110119-beep/wechat-local-assistant/releases/tag/v1.0.0)保留用于回退（旧版只有整理公众号文章与自然对话功能）。

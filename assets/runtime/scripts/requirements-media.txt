@@ -2,3 +2,7 @@ Pillow==12.3.0
 rapidocr_onnxruntime==1.4.4
 yt-dlp==2026.8.19
 # Reuses project voice environment: av, faster-whisper, and local models/base.
+
+av==16.1.0
+
+imageio-ffmpeg==0.6.0

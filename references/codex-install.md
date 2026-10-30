@@ -4,20 +4,19 @@
 
 已有本Skill部署的助理，先等任务结束并停止服务，再执行`python 新版Skill目录/scripts/upgrade.py --target 原安装目录 --check-only`核对，去掉`--check-only`执行升级。脚本备份被替换文件，保留配置、绑定、消息、依赖和知识库；发现自定义代码或旧规则改动则保留并交给助理合并，不能覆盖。同版升级后，按下面步骤配置Codex启动接入，再用`scripts/start.ps1`启动，无需重新扫码。旧版启用过Windows登录自启的，先用PowerShell 7运行`scripts/autostart-task.ps1 -Mode Disable`移除旧任务，不影响绑定和笔记。
 
-先检测并登录官方 Codex，准备 Node.js >=22.13、Python >=3.10、PowerShell 7。优先使用已有或 Codex 捆绑运行时，缺少时安装官方版本；不覆盖已有环境。Codex 需支持本机 App Server，连接错误按运行说明排查。
+先按[安装检查](installation-check.md)核对实际宿主工具并登录官方Codex。优先使用已有或Codex捆绑运行时；推荐Python3.12，最低3.10。统一入口检测Node.js >=22.13、PowerShell7，缺少时尝试官方安装；不覆盖已有环境。Codex需支持本机App Server，缺少/未登录引导官方安装或登录，不借用其他人的账号。
 
 从旧安装升级后，恢复服务前在原部署目录运行`python scripts/setup-content.py`，补齐图片总结PDF所需的项目依赖；已有微信绑定、知识库和本机转写模型保留，不需要重新下载模型或扫码。
 
 用本机 Python 在 Skill 根目录执行，示例路径换成用户选择的实际路径：
 
 ```powershell
-python scripts/deploy.py --host codex --target "D:\微信智能助理" --vault "D:\个人知识库"
-node scripts/install-dependencies.mjs --root "D:\微信智能助理"
+python scripts/install.py --host codex --target "D:\微信智能助理" --vault "D:\个人知识库"
 ```
 
 安装目标使用新的专用空目录，知识库可复用已有目录。脚本保留原有笔记与配置，权限仅覆盖助理目录和知识库。依赖安装使用部署配置中检测到的运行时；公众号读取器无需额外依赖。已有语音转写直接使用。
 
-随后进入部署目录执行 `python scripts/setup-content.py --with-media`，配置小红书、PDF、Office、图片和音视频读取；具体使用见[素材读取](content-reading.md)。
+统一入口已补齐小红书、PDF、Office、OCR、浏览器和视频处理依赖并实际验证；只有需要本机转写音轨时追加`--with-media`。检查未通过须先解释缺项及修复方式，不能直接声称全部安装成功；具体使用见[素材读取](content-reading.md)。
 
 进入部署目录，使用 `config/local.json` 中的 nodePath 运行 `scripts/pair-weixin.mjs`，打开生成的本机二维码页面，由用户手机扫码。凭据仅保存至本机 `.runtime/credentials/`，不复用其他助理凭据；验证码由用户在本机终端输入。已绑定 ClawBot 时先告知重新绑定会替换原入口。
 

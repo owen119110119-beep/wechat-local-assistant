@@ -24,7 +24,8 @@ def profile(provider):
 def open_context(playwright,provider,visible=False):
     directory=profile(provider)/'profile';directory.mkdir(parents=True,exist_ok=True)
     candidates=[Path(os.environ.get(key,''))/'Google/Chrome/Application/chrome.exe' for key in ('PROGRAMFILES','PROGRAMFILES(X86)','LOCALAPPDATA') if os.environ.get(key)]
-    options={'channel':'chrome'} if any(path.is_file() for path in candidates) else {}
+    from local_tools import browser_options
+    options=browser_options(ROOT)
     return playwright.chromium.launch_persistent_context(str(directory),**options,headless=not visible,
              viewport={'width':1280,'height':900},accept_downloads=False,chromium_sandbox=True)
 

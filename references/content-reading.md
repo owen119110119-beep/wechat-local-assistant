@@ -1,6 +1,6 @@
 # 素材读取
 
-在部署目录运行 `python scripts/setup-content.py --with-media`，安装到该目录的 `.venv`。保留已有环境和转写模型；浏览器优先使用已安装Chrome，缺少时下载到本机部署目录。安装包不携带账号、模型或用户素材。
+首次使用[统一安装检查](installation-check.md)补齐依赖并验证。在已有部署运行`python scripts/setup-assistant.py`可检查并修复到该目录`.venv`；确需本机音频转写才加`--with-media`。保留已有环境和转写模型；浏览器优先使用可运行的Chrome，缺少或启动失败时使用项目专用Chromium。视频工具随项目安装，不依赖其他Skill。安装包不携带账号、模型或用户素材。
 
 Codex网关自动处理微信收到的小红书分享链接、网页链接及图片/文件/音视频附件。已转写的语音直接作为用户需求使用。WorkBuddy使用自身工具接收附件，然后调用部署目录中的同一读取脚本。
 

@@ -9,6 +9,8 @@ description: 安装、升级或维护微信本机智能助理，连接 Codex 或
 
 先确定宿主、专用安装目录和知识库路径，检测已有安装。已有助理升级保留配置、绑定与笔记，不重新部署或扫码。
 
+安装和升级先按[安装检查](references/installation-check.md)核对宿主实际工具，使用统一入口自动补齐项目依赖并实际验证；缺项提前给出可操作引导，不能把导入或文件部署当作全部可用。
+
 - Codex：按 [部署说明](references/codex-install.md) 安装本机网关，适用于 Windows。
 - WorkBuddy：按 [安装说明](references/workbuddy.md) 使用原生微信连接及自身工具。
 - 两个宿主均执行 [交互与分类规则](references/interaction.md)，部署脚本使用同一规则文件。
